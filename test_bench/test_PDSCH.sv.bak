@@ -1,0 +1,553 @@
+// tb/tb_LDPC_encode.sv  (przerobiony pod PDSCHTx, ale debugger i wyjście nietknięte)
+`timescale 1ns/1ps
+
+module tb_PDSCH;
+
+  localparam string VEC_DIR_IN     = "D:/Docs/Uczelnia/Dyplom1/vectors/Output_Matlab/PDSCH";
+  localparam string VEC_DIR_GOLD   = "D:/Docs/Uczelnia/Dyplom1/vectors/Output_Matlab/PDSCH";
+  localparam string VEC_DIR_META   = "D:/Docs/Uczelnia/Dyplom1/vectors/Output_Matlab/PDSCH";
+  localparam string VEC_DIR_RESULT = "D:/Docs/Uczelnia/Dyplom1/vectors/Output_DUT/PDSCH_output";
+
+  localparam string CASE = "A57";
+
+  localparam int W = 64;
+  localparam int TIMEOUT_CYCLES = 2_000_000;
+  localparam int MAX_ERR_PRINT_DEFAULT = 1000;
+
+  logic        clk;
+  logic        rst;
+
+  // ====== WEJŚCIE pod PDSCHTx ======
+  logic [63:0] in_chunk;
+  logic        in_valid;
+  logic        in_last;
+  logic [15:0] tb_len;
+
+
+  logic        out_valid;
+  logic [63:0] out_chunk;
+  logic        out_last;
+  logic [5:0]  out_pad_left;
+  logic [5:0]  out_pad_right;
+
+
+  // ====== DUT: PDSCHTx ======
+  PDSCHTx dut (
+    .clk(clk),
+    .rst(rst),
+    .in_chunk(in_chunk),
+    .in_valid(in_valid),
+    .in_last(in_last),
+    .tb_len(tb_len),
+    .out_chunk(out_chunk),
+    .out_valid(out_valid),
+    .out_last(out_last),
+    .out_pad_left(out_pad_left),
+    .out_pad_right(out_pad_right)
+  );
+
+  string in_file;
+  string golden_file;
+  string meta_file;
+  string out_dump_file;
+  int    fd_dump;
+
+  // UWAGA: zostawiam Twoje struktury, ale input będzie w tb_cb[0] jako cały TB
+  bit tb_cb[int][$];
+  bit golden_cb[int][$];
+
+  // META: zostawiam stare pola (nie przeszkadzają), dodaję A
+  int META_CB_COUNT = 0;
+  int META_K        = -1;
+  int META_F        = -1;
+  int META_ZC       = -1;
+  int META_BG       = -1;
+  int META_A        = -1;
+
+  initial begin
+    clk = 0;
+    forever #5 clk = ~clk;
+  end
+
+  initial begin
+    if ($test$plusargs("DUMP")) begin
+      $dumpfile("tb_PDSCH.vcd");
+      $dumpvars(0, tb_PDSCH);
+    end
+  end
+
+  integer cyc;
+  integer prev_out_valid_crc;
+  integer prev_out_last_crc;
+  integer prev_out_valid_prep;
+  integer prev_out_last_chunk_prep;
+  integer prev_out_last_cb_prep;
+  
+
+  // ====== DEBUGGER: ZOSTAWIONY 1:1 ======
+//  always @(posedge clk) begin
+//    if (!rst) begin
+//      cyc <= 0;
+//      prev_out_valid_crc <= -1;
+//      prev_out_valid_prep <= -1;
+//      
+//    end else begin
+//      cyc <= cyc + 1;
+//      if ((cyc % 1) == 0) begin
+//        $display("cyc=%0d, encode.state_fsm1=0%d, encode.state_fsm2=0%d, encode.state_fsm3=0%d",
+//          cyc, dut.encode.state_fsm1, dut.encode.state_fsm2, dut.encode.state_fsm3
+//        );
+//      end
+//		// i/lub drukuj gdy zmieni się którykolwiek stan
+//      if (dut.out_valid_crc != prev_out_valid_crc || dut.out_last_crc !=  prev_out_last_crc || dut.out_valid_prep !=  prev_out_valid_prep || dut.out_last_chunk_prep != prev_out_last_chunk_prep ||  dut.out_last_cb_prep != prev_out_last_cb_prep) begin
+//        $display("STATE CHANGE @cyc=%0d: out_valid_crc=%0d, out_last_crc=%0d, out_valid_prep=%0d, out_last_chunk_prep=%0d, out_last_cb_prep=%0d, out_chunk_crc=%0b ",
+//          cyc, dut.out_valid_crc, dut.out_last_crc, dut.out_valid_prep, dut.out_last_chunk_prep, dut.out_last_cb_prep, dut.out_chunk_prep
+//        );
+//        prev_out_valid_crc <= dut.out_valid_crc;
+//        prev_out_last_crc <= dut.out_last_crc;
+//        prev_out_valid_prep <= dut.out_valid_prep;
+//        prev_out_last_chunk_prep <= dut.out_last_chunk_prep;
+//        prev_out_last_cb_prep <= dut.out_last_cb_prep;
+//      end
+//    end
+//  end
+
+  function automatic string trim_eol(input string s);
+    while (s.len() > 0) begin
+      byte c = s[s.len()-1];
+      if (c == "\n" || c == "\r") s = s.substr(0, s.len()-2);
+      else break;
+    end
+    return s;
+  endfunction
+
+  function automatic bit is01(input byte c);
+    return (c=="0" || c=="1");
+  endfunction
+
+  // INPUT: czytaj 0/1 do pierwszego "-1"
+  task automatic parse_input_line(
+    input  string line_in,
+    output bit    q[$]
+  );
+    string line;
+    int i;
+
+    q = {};
+    line = trim_eol(line_in);
+
+    for (i = 0; i < line.len(); i++) begin
+      if (line[i] == "-" && (i+1) < line.len() && line[i+1] == "1") begin
+        break;
+      end
+      if (is01(line[i])) begin
+        q.push_back(line[i] == "1");
+      end
+    end
+  endtask
+
+  // GOLDEN: ignoruj KAŻDE "-1" (separator), bez dopadywania zerami
+  task automatic parse_golden_line(
+    input  string line_in,
+    output bit    q[$]
+  );
+    string line;
+    int i;
+
+    q = {};
+    line = trim_eol(line_in);
+
+    i = 0;
+    while (i < line.len()) begin
+      if (line[i] == "-" && (i+1) < line.len() && line[i+1] == "1") begin
+        i += 2; // zjedz "-1"
+        continue;
+      end
+
+      if (is01(line[i])) begin
+        q.push_back(line[i] == "1");
+      end
+      i++;
+    end
+  endtask
+
+  // ====== ZMIANA: INPUT jako JEDEN strumień TB => tb_cb[0] ======
+  task automatic read_input_lines(
+    input  string path,
+    output bit    cb[int][$]
+  );
+    int fd;
+    string line;
+
+    cb.delete();
+
+    fd = $fopen(path, "r");
+    if (fd == 0) begin
+      $display("ERROR: Nie moge otworzyc INPUT: %s", path);
+      $finish;
+    end
+
+    cb[0] = {};
+    while ($fgets(line, fd)) begin
+      bit q[$];
+      line = trim_eol(line);
+      if (line.len() == 0) continue;
+
+      // czytaj wszystkie 0/1, ignoruj "-1" (żeby zebrać cały TB z wielu linii)
+      parse_golden_line(line, q);
+      for (int i = 0; i < q.size(); i++) cb[0].push_back(q[i]);
+    end
+
+    $fclose(fd);
+  endtask
+
+  task automatic read_golden_lines(
+    input  string path,
+    output bit    cb[int][$]
+  );
+    int fd;
+    string line;
+    int idx;
+
+    cb.delete();
+    idx = 0;
+
+    fd = $fopen(path, "r");
+    if (fd == 0) begin
+      $display("ERROR: Nie moge otworzyc GOLDEN: %s", path);
+      $finish;
+    end
+
+    while ($fgets(line, fd)) begin
+      bit q[$];
+      line = trim_eol(line);
+      if (line.len() == 0) continue;
+
+      parse_golden_line(line, q);
+      cb[idx] = q;
+      idx++;
+    end
+
+    $fclose(fd);
+  endtask
+
+  task automatic read_meta(input string path);
+    int fd;
+    string line;
+    int eq_pos;
+    string key, val_s;
+    int v;
+
+    fd = $fopen(path, "r");
+    if (fd == 0) begin
+      $display("UWAGA: Nie moge otworzyc META: %s (jadę na domyślnych)", path);
+      return;
+    end
+
+    while ($fgets(line, fd)) begin
+      line = trim_eol(line);
+
+      eq_pos = -1;
+      for (int i = 0; i < line.len(); i++) begin
+        if (line[i] == "=") begin
+          eq_pos = i;
+          break;
+        end
+      end
+      if (eq_pos <= 0 || eq_pos >= line.len()-1) continue;
+
+      key   = line.substr(0, eq_pos-1);
+      val_s = line.substr(eq_pos+1, line.len()-1);
+
+      if ($sscanf(val_s, "%d", v) != 1) continue;
+
+      if      (key == "CB_COUNT")    META_CB_COUNT = v;
+      else if (key == "K")           META_K        = v;
+      else if (key == "FILLER_NUM")  META_F        = v;
+      else if (key == "ZC")          META_ZC       = v;
+      else if (key == "BG")          META_BG       = v;
+      else if (key == "A")           META_A        = v;
+    end
+
+    $fclose(fd);
+  endtask
+
+  // ====== ZMIANA: driver pod PDSCHTx (bez in_last_cb) ======
+  task automatic drive_one_cb(
+    input int cb_idx,
+    input int cb_count_total
+  );
+    int nbits;
+    int di;
+    logic [W-1:0] word;
+
+    if (!tb_cb.exists(cb_idx)) begin
+      $display("ERROR: Brak tb_cb[%0d]", cb_idx);
+      return;
+    end
+
+    nbits = tb_cb[cb_idx].size();
+
+    // tnij do META_A jeśli jest (A = TB length)
+    if (META_A > 0 && nbits > META_A) nbits = META_A;
+
+    $display("SEND TB bits=%0d (A=%0d)", nbits, META_A);
+
+    di = 0;
+    while (di < nbits) begin
+      for (int b = 0; b < W; b++) begin
+        if ((di + b) < nbits) word[W-1-b] = tb_cb[cb_idx][di + b];
+        else                  word[W-1-b] = 1'b0;
+      end
+
+      @(posedge clk);
+      in_valid <= 1'b1;
+      in_chunk <= word;
+      in_last  <= ((di + W) >= nbits);
+
+      di += W;
+    end
+
+    @(posedge clk);
+    in_valid <= 1'b0;
+    in_chunk <= '0;
+    in_last  <= 1'b0;
+  endtask
+
+  int total_bit_errors = 0;
+  int total_cb_failed  = 0;
+
+  task automatic check_cb_bits_nonfatal(
+    input int cb_idx,
+    input bit dut_bits[$]
+  );
+    int glen, dlen;
+    int ncmp;
+    int err_cnt;
+    int max_print;
+
+    max_print = MAX_ERR_PRINT_DEFAULT;
+    void'($value$plusargs("MAX_ERR_PRINT=%d", max_print));
+
+    glen = golden_cb.exists(cb_idx) ? golden_cb[cb_idx].size() : -1;
+    dlen = dut_bits.size();
+
+    if (glen < 0) begin
+      $display("ERROR: Brak golden_cb[%0d]", cb_idx);
+      total_cb_failed++;
+      return;
+    end
+
+    ncmp = (dlen < glen) ? dlen : glen;
+    err_cnt = 0;
+
+    for (int i = 0; i < ncmp; i++) begin
+      if (dut_bits[i] !== golden_cb[cb_idx][i]) begin
+        err_cnt++;
+        total_bit_errors++;
+        if (err_cnt <= max_print) begin
+          $display("MISMATCH: CB=%0d bit=%0d DUT=%0b GOLD=%0b", cb_idx, i, dut_bits[i], golden_cb[cb_idx][i]);
+        end
+      end
+    end
+
+    if (dlen < glen) begin
+      $display("WARNING: CB=%0d DUT dał za mało bitów: dut=%0d golden=%0d (brakujące golden traktuję jako błąd)", cb_idx, dlen, glen);
+      total_bit_errors += (glen - dlen);
+      err_cnt          += (glen - dlen);
+    end
+
+    if (err_cnt != 0) begin
+      total_cb_failed++;
+      $display("CB=%0d FAIL: errors=%0d (dut_bits=%0d golden_bits=%0d)", cb_idx, err_cnt, dlen, glen);
+    end else begin
+      $display("CB=%0d PASS (dut_bits=%0d golden_bits=%0d)", cb_idx, dlen, glen);
+    end
+
+  endtask
+
+  // Porównanie CIĄGŁEGO strumienia bitów (ignoruje podział na CB w DUT;
+  // golden tworzony jako konkatenacja wszystkich golden_cb[0..cb_cnt-1]).
+  task automatic check_stream_bits_nonfatal(
+    input bit dut_bits[$],
+    input bit golden_bits[$]
+  );
+    int glen, dlen;
+    int ncmp;
+    int err_cnt;
+    int max_print;
+
+    max_print = MAX_ERR_PRINT_DEFAULT;
+    void'($value$plusargs("MAX_ERR_PRINT=%d", max_print));
+
+    glen = golden_bits.size();
+    dlen = dut_bits.size();
+    ncmp = (dlen < glen) ? dlen : glen;
+
+    err_cnt = 0;
+
+    for (int i = 0; i < ncmp; i++) begin
+      if (dut_bits[i] !== golden_bits[i]) begin
+        err_cnt++;
+        total_bit_errors++;
+
+        if (err_cnt <= max_print) begin
+          $display("BIT_ERR stream idx=%0d got=%0d exp=%0d", i, dut_bits[i], golden_bits[i]);
+        end
+      end
+    end
+
+    if (dlen != glen) begin
+      $display("LEN_MISMATCH stream: dut_bits=%0d golden_bits=%0d", dlen, glen);
+      total_cb_failed++;
+    end else if (err_cnt != 0) begin
+      $display("STREAM_ERRORS: mismatches=%0d (shown<=%0d)", err_cnt, max_print);
+      total_cb_failed++;
+    end else begin
+      $display("STREAM_OK: bits=%0d", dlen);
+    end
+  endtask
+
+  initial begin : main
+    int tb_cnt;
+    int gold_cnt;
+    int cb_cnt;
+    bit ob;
+
+    rst      = 1'b0;
+    in_valid = 1'b0;
+    in_chunk = '0;
+    in_last  = 1'b0;
+    tb_len   = 16'd0;
+
+    in_file       = {VEC_DIR_IN,    "/", CASE, "_in_bits",  ".txt"};
+    golden_file   = {VEC_DIR_GOLD,  "/", CASE, "_out_bits", ".txt"};
+    meta_file     = {VEC_DIR_META,  "/", CASE, "_meta",     ".txt"};
+    out_dump_file = {VEC_DIR_RESULT,"/", CASE, "_dut_out_bits", ".txt"};
+
+    repeat (5) @(posedge clk);
+    rst <= 1'b1;
+    @(posedge clk);
+
+    read_meta(meta_file);
+    if (META_A > 0) tb_len = META_A[15:0];
+
+    $display("META: A=%0d (tb_len=%0d) CB_COUNT=%0d K=%0d FILLER=%0d ZC=%0d BG=%0d",
+             META_A, tb_len, META_CB_COUNT, META_K, META_F, META_ZC, META_BG);
+
+    read_input_lines(in_file, tb_cb);
+    read_golden_lines(golden_file, golden_cb);
+
+    tb_cnt   = tb_cb.num();
+    gold_cnt = golden_cb.num();
+
+    // dla PDSCHTx: zawsze 1 "CB" w TB (tb_cb[0])
+    cb_cnt = 1;
+
+    if (tb_cnt < cb_cnt) begin
+      $display("ERROR: Input ma za malo danych: %0d, oczekiwane %0d", tb_cnt, cb_cnt);
+      $finish;
+    end
+    if (gold_cnt < 1) begin
+      $display("ERROR: Golden pusty");
+      $finish;
+    end
+
+    fd_dump = $fopen(out_dump_file, "w");
+    if (fd_dump == 0) begin
+      $display("ERROR: Nie moge otworzyc do zapisu: %s", out_dump_file);
+      $finish;
+    end
+
+    fork
+
+      begin : drv
+        // jednorazowo wysyłamy cały TB jako tb_cb[0]
+        drive_one_cb(0, 1);
+      end
+
+      // ====== MONITOR WYJŚCIA: ZOSTAWIONY 1:1 ======
+      begin : mon
+        bit golden_flat[$];
+        bit dut_bits[$];
+
+        golden_flat = {};
+        for (int cb = 0; cb < gold_cnt; cb++) begin
+          if (!golden_cb.exists(cb)) begin
+            $display("ERROR: Brak golden_cb[%0d]", cb);
+          end else begin
+            for (int i = 0; i < golden_cb[cb].size(); i++) begin
+              golden_flat.push_back(golden_cb[cb][i]);
+            end
+          end
+        end
+        $display("GOLDEN_FLAT bits=%0d (lines=%0d)", golden_flat.size(), gold_cnt);
+
+        dut_bits = {};
+
+        forever begin
+          @(posedge clk);
+          #1step;
+
+          if (out_valid) begin
+            int padL, padR;
+            int vb;
+            int msb_idx;
+            int lsb_idx;
+
+            padL = out_pad_left;
+            padR = out_pad_right;
+
+            // clamp (na wszelki wypadek)
+            if (padL < 0) padL = 0;
+            if (padR < 0) padR = 0;
+            if (padL > W) padL = W;
+            if (padR > W) padR = W;
+
+            vb = W - padL - padR;     // liczba WAŻNYCH bitów
+            if (vb < 0) vb = 0;
+            if (vb > W) vb = W;
+
+            msb_idx = (W-1) - padL;   // start od lewej strony okna
+            lsb_idx = padR;           // koniec okna od prawej
+
+            // ważne bity: [msb_idx : lsb_idx], wypychaj MSB-first
+            for (int b = 0; b < vb; b++) begin
+              int idx;
+              idx = msb_idx - b;
+              if (idx < 0 || idx >= W) continue;
+              if (idx < lsb_idx) break;
+
+              ob = out_chunk[idx];
+              dut_bits.push_back(ob);
+              $fwrite(fd_dump, "%0d", ob);
+            end
+
+            $fwrite(fd_dump, "\n");
+          end
+
+          if (out_last) begin
+            $fwrite(fd_dump, "\n");
+
+            check_stream_bits_nonfatal(dut_bits, golden_flat);
+
+            $display("DONE. dut_bits=%0d golden_bits=%0d, cb_failed=%0d, bit_errors=%0d",
+                     dut_bits.size(), golden_flat.size(), total_cb_failed, total_bit_errors);
+            $fclose(fd_dump);
+            $finish;
+          end
+        end
+      end
+
+      begin : wdog
+        repeat (TIMEOUT_CYCLES) @(posedge clk);
+        $display("TIMEOUT: brak zakończenia w %0d cyklach", TIMEOUT_CYCLES);
+        $display("SUMMARY (timeout): cb_failed=%0d bit_errors=%0d", total_cb_failed, total_bit_errors);
+        $fclose(fd_dump);
+        $finish;
+      end
+
+    join_none
+  end
+
+endmodule

@@ -1,0 +1,140 @@
+m255
+K4
+z2
+!s99 nomlopt
+!s11f vlog 2021.2 2021.04, Apr 14 2021
+13
+!s112 1.1
+!i10d 8192
+!i10e 25
+!i10f 100
+cModel Technology
+Z0 dD:/Docs/Uczelnia/Dyplom1/simulation
+T_opt
+!s110 1765811261
+VIZn;8VP=aUiaARAY??6L?2
+04 15 4 work tb_crc_parallel fast 0
+=1-c87f5406c9bd-6940243d-155-2bdc
+!s124 OEM10U6 
+o-quiet -auto_acc_if_foreign -work work -L altera_ver -L altera_lnsim_ver -L cyclonev_ver -L lpm_ver -L sgate_ver -L cyclonev_hssi_ver -L altera_mf_ver -L cyclonev_pcie_hip_ver -L gate_work -L work +acc
+Z1 tCvgOpt 0
+n@_opt
+OL;O;2021.2;73
+vcrc_parallel
+Z2 !s110 1765811260
+!i10b 1
+!s100 ^EViGe5nID@AaFAT7giMC1
+I9`7bXhNh^1A=5?h?gPK?C3
+R0
+w1765754730
+8D:/Docs/Uczelnia/Dyplom1/rtl/crc_parallel.v
+FD:/Docs/Uczelnia/Dyplom1/rtl/crc_parallel.v
+!i122 2
+L0 15 267
+Z3 VDg1SIo80bB@j0V0VzS_@n1
+Z4 OL;L;2021.2;73
+r1
+!s85 0
+31
+Z5 !s108 1765811260.000000
+!s107 D:/Docs/Uczelnia/Dyplom1/rtl/crc_parallel.v|
+!s90 -reportprogress|300|-vlog01compat|-work|work|+incdir+D:/Docs/Uczelnia/Dyplom1/rtl|D:/Docs/Uczelnia/Dyplom1/rtl/crc_parallel.v|
+!i113 0
+Z6 o-vlog01compat -work work -L mtiAvm -L mtiRnm -L mtiOvm -L mtiUvm -L mtiUPF -L infact
+Z7 !s92 -vlog01compat -work work +incdir+D:/Docs/Uczelnia/Dyplom1/rtl -L mtiAvm -L mtiRnm -L mtiOvm -L mtiUvm -L mtiUPF -L infact
+R1
+vcrc_serial
+R2
+!i10b 1
+!s100 Ya49Allc_bn9U8GoTR?=f1
+IMkInE7^MLe7?2K6V>`hhP0
+R0
+w1765747047
+8D:/Docs/Uczelnia/Dyplom1/rtl/crc_serial.v
+FD:/Docs/Uczelnia/Dyplom1/rtl/crc_serial.v
+!i122 4
+L0 16 129
+R3
+R4
+r1
+!s85 0
+31
+R5
+!s107 D:/Docs/Uczelnia/Dyplom1/rtl/crc_serial.v|
+!s90 -reportprogress|300|-vlog01compat|-work|work|+incdir+D:/Docs/Uczelnia/Dyplom1/rtl|D:/Docs/Uczelnia/Dyplom1/rtl/crc_serial.v|
+!i113 0
+R6
+R7
+R1
+vcrc_update
+R2
+!i10b 1
+!s100 D09kPkA2EG@=_@IB`LUEJ0
+ICQI5;K4ReK`omnDbmMWV^0
+R0
+w1765744456
+8D:/Docs/Uczelnia/Dyplom1/rtl/crc_update.v
+FD:/Docs/Uczelnia/Dyplom1/rtl/crc_update.v
+!i122 3
+L0 3 101
+R3
+R4
+r1
+!s85 0
+31
+R5
+!s107 D:/Docs/Uczelnia/Dyplom1/rtl/crc_update.v|
+!s90 -reportprogress|300|-vlog01compat|-work|work|+incdir+D:/Docs/Uczelnia/Dyplom1/rtl|D:/Docs/Uczelnia/Dyplom1/rtl/crc_update.v|
+!i113 0
+R6
+R7
+R1
+vPDSCHTx
+R2
+!i10b 1
+!s100 YSmXlDU73m7bJn0[>i>>c3
+I0i<n4zLfdgPEgKQOQP`bi3
+R0
+w1761330467
+8PDSCHTx.vo
+FPDSCHTx.vo
+!i122 0
+L0 32 7831
+R3
+R4
+r1
+!s85 0
+31
+R5
+!s107 PDSCHTx.vo|
+!s90 -reportprogress|300|-vlog01compat|-work|work|+incdir+.|PDSCHTx.vo|
+!i113 0
+R6
+!s92 -vlog01compat -work work +incdir+. -L mtiAvm -L mtiRnm -L mtiOvm -L mtiUvm -L mtiUPF -L infact
+R1
+n@p@d@s@c@h@tx
+vtb_crc_parallel
+DXx6 sv_std 3 std 0 22 9oUSJO;AeEaW`l:M@^WG92
+R2
+!i10b 1
+!s100 5om^HH2]22nm9H_YP3QEL3
+IX:oDdAf`CZb4@04o>jA<e1
+S1
+R0
+w1765749844
+8D:/Docs/Uczelnia/Dyplom1/tb/tb_crc_parallel.sv
+FD:/Docs/Uczelnia/Dyplom1/tb/tb_crc_parallel.sv
+!i122 1
+L0 4 189
+R3
+R4
+r1
+!s85 0
+31
+R5
+!s107 D:/Docs/Uczelnia/Dyplom1/tb/tb_crc_parallel.sv|
+!s90 -reportprogress|300|-sv|-work|work|+incdir+D:/Docs/Uczelnia/Dyplom1/tb|D:/Docs/Uczelnia/Dyplom1/tb/tb_crc_parallel.sv|
+!i113 0
+o-sv -work work -L mtiAvm -L mtiRnm -L mtiOvm -L mtiUvm -L mtiUPF -L infact
+!s92 -sv -work work +incdir+D:/Docs/Uczelnia/Dyplom1/tb -L mtiAvm -L mtiRnm -L mtiOvm -L mtiUvm -L mtiUPF -L infact
+R1

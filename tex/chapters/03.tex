@@ -1,0 +1,174 @@
+\chapter{Wymagania i~narzędzia}
+\label{ch:wymagania-i-narzedzia}
+
+\section{Założenia projektowe}
+\label{sec:zalozenia_projektowe}
+
+\subsection{Sposób przetwarzania danych}
+Podstawowym założeniem jest przetwarzanie danych w~całym torze na stałej szynie danych o~szerokości wynoszącej 64 bity. Dane są przekazywane pomiędzy blokami jako kolejne słowa 64-bitowe, taktowane wspólnym sygnałem zegarowym \texttt{clk}. W konsekwencji:
+\begin{itemize}
+    \item granice istotnych fragmentów danych nie muszą pokrywać się z~granicami słowa 64-bit,
+    \item w~przypadku długości niebędącej wielokrotnością 64 bitów konieczne jest stosowanie dopełniania oraz przekazywanie informacji o~ważności danych.
+\end{itemize}
+
+\subsection{Model pracy}
+Aktualna wersja systemu obsługuje dokładnie jeden blok transportowy w~ramach jednego cyklu pracy. Po zakończeniu przetwarzania TB nie przewidziano automatycznego powrotu do stanu gotowości. Aby rozpocząć przetwarzanie następnego bloku danych wymagane jest wykonanie resetu układu.
+
+Założenie to upraszcza sterowanie modułami, zamykanie przetwarzania i~obsługę buforów danych, kosztem braku pracy w~trybie ciągłym. Rozszerzenie do obsługi transmisji ciągłej stanowi potencjalny kierunek rozwoju.
+
+\subsection{Sterowanie przepływem danych}
+W projekcie do kontroli przepływu danych zaimplementowano mechanizm opierający się na sygnale "valid" oraz "last". Mechanizm ten ideą przypomina protokół "valid-ready". 
+\begin{itemize}
+    \item źródło danych sygnalizuje ważność słowa sygnałem \texttt{valid},
+    \item odbiornik nie posiada sygnału informującego o~gotowości do przyjęcia danych (brak \texttt{ready}),
+    \item odbiornik ma obowiązek przyjąć dane w~każdym cyklu, w~którym \texttt{valid=1}.
+\end{itemize}
+
+Przyjęcie takiego interfejsu upraszcza połączenia pomiędzy blokami oraz ogranicza liczbę przypadków brzegowych podczas pierwszej implementacji. Jednocześnie nakłada wymagania na strukturę toru. Moduły muszą przekazywać dane z~wejścia na wyjście w~cyklu ich wystąpienia albo posiadać odpowiednie bufory umożliwiające przyjęcie danych w~każdym cyklu.
+
+
+\subsection{Sposób podawania danych wejściowych}
+Nie narzuca się stałego tempa dostarczania danych wejściowych. System nadrzędny może:
+\begin{itemize}
+    \item podawać dane w~sposób ciągły -- do 1 słowa 64-bitowego na 1 cykl sygnału zegarowego,
+    \item wprowadzać dowolne przerwy pomiędzy kolejnymi słowami.
+\end{itemize}
+
+Słowo jest uznawane za poprawne i~podlegające przetwarzaniu wyłącznie w~cyklu, w~którym \texttt{in\_valid=1}. Zakończenie TB jest sygnalizowane przez \texttt{in\_last=1} jednocześnie z~\texttt{in\_valid=1} na ostatnim słowie TB.
+
+Wprowadzenie pełnego mechanizmu handshake (np. zgodnego z~AXI4-Stream) jest traktowane jako możliwy etap rozbudowy, lecz nie jest elementem aktualnej wersji projektu.
+
+\subsection{Elastyczność kodowania LDPC i~obsługa różnych TB}
+Projekt zakłada obsługę dowolnego bloku transportowego, tj. poprawne przetworzenie i~zakodowanie danych niezależnie od długości TB oraz konfiguracji wynikającej z~reguł doboru parametrów kodowania LDPC. Oznacza to, że tor przetwarzania powinien działać poprawnie dla różnych przypadków, w~których mogą zmieniać się m.in.:
+\begin{itemize}
+    \item wybór grafu bazowego (BG),
+    \item rozmiar podmacierzy,
+    \item docelowe długości bloków używane w~kodowaniu,
+    \item liczba bitów dopełnienia oraz wynikające z~niej wyrównanie danych,
+    \item liczba CB powstałych w~wyniku segmentacji TB.
+\end{itemize}
+
+W konsekwencji architektura musi umożliwiać przetwarzanie bloków o~zmiennej długości oraz generowanie poprawnego strumienia wyjściowego przy zachowaniu stałej szerokości słowa 64-bit.
+
+\subsection{Wymagania}
+
+\begin{itemize}
+    \item \textbf{Deterministyczność działania:} dla identycznych danych wejściowych oraz identycznych metadanych sterujących system powinien generować identyczny strumień wyjściowy.
+    \item \textbf{Weryfikacja przez symulację:} projekt powinien umożliwiać weryfikację w~symulacji poprzez porównanie wyników z~wektorami referencyjnymi w~sposób bitowo-dokładny.
+    \item \textbf{Syntezowalność:} projekt powinien dać się poprawnie zsyntetyzować dla założonego układu FPGA, tak aby raporty syntezy pozwalały ocenić wykorzystanie zasobów oraz spełnienie ograniczeń czasowych.
+
+\end{itemize}
+
+
+\section{Interfejsy i~format danych}
+\label{sec:interfejsy_i_format_danych}
+
+W projekcie zastosowano prosty interfejs strumieniowy oparty o~sygnały \texttt{valid/last} oraz równoległą magistralę danych 64-bit. Interfejs ten jest używany zarówno na wejściu całego toru, jak i~na wyjściu. Wewnątrz projektu poszczególne bloki mogą dodatkowo wymieniać metadane sterujące przetwarzaniem.
+
+\subsection{Interfejs wejściowy}
+\label{subsec:interfejs_wej}
+
+Wejście projektu przyjmuje TB w~postaci kolejnych słów 64-bitowych:
+\begin{itemize}
+    \item \texttt{in\_chunk[63:0]} -- dane wejściowe,
+    \item \texttt{in\_valid} -- informacja o~tym, że \texttt{in\_chunk} jest ważne w~bieżącym cyklu,
+    \item \texttt{in\_last} -- znacznik ostatniego słowa TB,
+    \item \texttt{tb\_len} -- długość TB wyrażona w~ilości bitów.
+\end{itemize}
+
+Bity w~strumieniu są interpretowane w~kolejności \textbf{MSB-first}, tj. \texttt{in\_chunk[63]} odpowiada pierwszemu bitowi danego słowa w~sensie strumieniowym, a~\texttt{in\_chunk[0]} -- ostatniemu.
+
+Interfejs wejściowy przedstawiono na rys. \ref{fig:pdschtx_if_in}.
+
+\begin{figure}[!ht]
+\centering
+\begin{minipage}{0.95\linewidth}
+\begin{lstlisting}
+    ...
+    input  wire         clk,
+    input  wire         rst,
+    input  wire [63:0]  in_chunk,
+    input  wire         in_valid,
+    input  wire         in_last,
+    input  wire [15:0]  tb_len,
+    ...
+);
+\end{lstlisting}
+\end{minipage}
+\caption{Interfejs wejściowy układu.}
+\label{fig:pdschtx_if_in}
+\end{figure}
+
+
+
+
+
+\subsection{Interfejs wyjściowy}
+\label{subsec:interfejs_wyj}
+
+Wyjście projektu generuje strumień danych w~postaci słów 64-bitowych:
+\begin{itemize}
+    \item \texttt{out\_chunk[63:0]} -- dane wyjściowe,
+    \item \texttt{out\_valid} -- informacja, że \texttt{out\_chunk} jest ważne w~bieżącym cyklu,
+    \item \texttt{out\_last} -- znacznik ostatniego słowa,
+    \item \texttt{out\_pad\_left[5:0]} -- liczba bitów do pominięcia od strony MSB w~słowie wyjściowym,
+    \item \texttt{out\_pad\_right[5:0]} -- liczba bitów do pominięcia od strony LSB w~słowie wyjściowym.
+\end{itemize}
+
+Słowo wyjściowe jest uznawane za ważne wyłącznie w~cyklu, w~którym \texttt{out\_valid=1}. Zakończenie przetwarzania całego TB jest jednoznacznie określone przez \texttt{out\_last=1} podane wraz z~ostatnim słowem wyjściowym.
+
+Analogicznie do wejścia, bity w~strumieniu wyjściowym są interpretowane w~kolejności \textbf{MSB-first}, tj. \texttt{out\_chunk[63]} odpowiada pierwszemu bitowi danego słowa w~sensie strumieniowym, a~\texttt{out\_chunk[0]} -- ostatniemu.
+
+Sygnały \texttt{out\_pad\_left} oraz \texttt{out\_pad\_right} stanowią metadane umożliwiające jednoznaczną interpretację strumienia w~przypadku, gdy liczba ważnych bitów w~słowie jest mniejsza niż 64. Informują one, ile bitów w~słowach należy pominąć odpowiednio od strony MSB oraz LSB.
+
+Interfejs wyjściowy przedstawiono na rys. \ref{fig:pdschtx_if_out}.
+
+\begin{figure}[!ht]
+\centering
+\begin{minipage}{0.95\linewidth}
+\begin{lstlisting}
+    ...
+    output wire [63:0]  out_chunk,
+    output wire         out_valid,
+    output wire         out_last,
+    output wire [5:0]   out_pad_left,
+    output wire [5:0]   out_pad_right
+);
+\end{lstlisting}
+\end{minipage}
+\caption{Interfejs wyjściowy układu.}
+\label{fig:pdschtx_if_out}
+\end{figure}
+
+
+\section{Środowisko projektowe i~narzędzia}
+\label{sec:srodowisko_i_narzedzia}
+
+Do realizacji projektu wykorzystano zestaw narzędzi obejmujący środowisko do syntezy i~implementacji układów FPGA, symulator HDL oraz środowisko do przygotowania i~analizy danych referencyjnych.
+
+\subsection{Quartus Prime Lite Edition}
+Podstawowym narzędziem do syntezy, implementacji oraz analizy wykorzystania zasobów i~parametrów czasowych jest Quartus Prime. Narzędzie to zostało użyte do:
+\begin{itemize}
+    \item syntezy logiki opisanej w~języku Verilog,
+    \item implementacji (fitter) dla wybranego układu FPGA,
+    \item generowania raportów wykorzystania zasobów,
+    \item analizy czasowej (timing) oraz wyznaczenia maksymalnej częstotliwości pracy.
+\end{itemize}
+
+\subsection{Questa Intel Starter FPGA Edition}
+Symulacje funkcjonalne projektu oraz uruchamianie środowiska testowego zrealizowano z~wykorzystaniem symulatora Questa. Narzędzie to zostało użyte do:
+\begin{itemize}
+    \item kompilacji i~uruchamiania \english{testbench'y} HDL napisanych w~języku System Verilog,
+    \item analizy przebiegów czasowych oraz zawartości rejestrów w~celu debugowania,
+    \item weryfikacji poprawności działania poprzez porównanie wyników z~danymi referencyjnymi.
+\end{itemize}
+
+\subsection{MATLAB}
+Środowisko MATLAB wykorzystano do przygotowania i~obsługi danych referencyjnych oraz do analizy wyników działania projektu. W szczególności MATLAB służył do:
+\begin{itemize}
+    \item generowania wektorów testowych wejściowych i~referencyjnych wyników wyjściowych,
+    \item przygotowania metadanych testów,
+    \item wstępnej analizy porównawczej wyników.
+\end{itemize}
+
+MATLAB został wykorzystany również do stworzenia kodu modelującego przetwarzanie strumienia. Kod ten umożliwiał wizualizację kolejnych transformacji wektorów i~weryfikację oczekiwanego formatu danych na wyjściu poszczególnych etapów toru.

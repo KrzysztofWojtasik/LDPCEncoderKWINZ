@@ -1,0 +1,391 @@
+// tb/tb_ldpc_prep.sv
+`timescale 1ns/1ps
+
+module tb_LDPC_prep;
+
+  // === KONFIG ===
+  localparam string VEC_DIR_IN     = "D:/Docs/Uczelnia/Dyplom1/vectors/crc/Output_Matlab/LDPC_prep";
+  localparam string VEC_DIR_MAT    = "D:/Docs/Uczelnia/Dyplom1/vectors/crc/Output_Matlab/LDPC_prep";
+  localparam string VEC_DIR_META   = "D:/Docs/Uczelnia/Dyplom1/vectors/crc/Output_Matlab/LDPC_prep";
+  localparam string VEC_DIR_RESULT = "D:/Docs/Uczelnia/Dyplom1/vectors/crc/Output_DUT/ldpc_prep_output";
+
+  localparam string CASE = "A25034";
+
+  localparam int W = 64;
+  localparam int TIMEOUT_CYCLES = 500000;
+
+  // === SYGNAŁY DO DUT ===
+  logic               clk;
+  logic               rst;          // synch reset aktywny w '0'
+  logic [15:0]        tb_len;       // TB length = A (bez TB CRC)
+
+  logic               in_valid;
+  logic [63:0]        in_chunk;
+  logic               in_last;
+
+  logic               out_valid;
+  logic [63:0]        out_chunk;
+  logic               out_last_chunk;
+  logic               out_last_cb;
+  logic [15:0]        out_filler_num;
+  logic [15:0]        out_k;
+
+  // === PLIKI ===
+  string in_file;
+  string golden_file;
+  string meta_file;
+  string out_dump_file;
+
+  int fd_dump;
+
+  // === BUFOR DANYCH ===
+  bit tb_bits_q[$];                 // bity wejściowe (powinno być B = A + TB_CRC)
+  bit golden_cb[int][$];            // golden_cb[cb_idx] -> kolejka bitów dla danego CB (bez -1)
+
+  // === META ===
+  int META_A;        // TB length bez TB CRC
+  int META_B;        // TB+TB_CRC length
+  int META_CB_COUNT;
+
+  // Zegar
+  initial clk = 0;
+  always #5 clk = ~clk;
+
+  // DUT
+  LDPC_prep dut (
+    .clk(clk),
+    .rst(rst),
+    .tb_len(tb_len),
+
+    .in_valid(in_valid),
+    .in_chunk(in_chunk),
+    .in_last(in_last),
+
+    .out_valid(out_valid),
+    .out_chunk(out_chunk),
+    .out_last_chunk(out_last_chunk),
+    .out_last_cb(out_last_cb),
+    .out_filler_num(out_filler_num),
+    .out_k(out_k)
+  );
+
+  int cyc;
+  int prev_fsm1, prev_fsm2, prev_fsm3, prev_ceil_state;
+
+  always @(posedge clk) begin
+    if (!rst) begin
+      cyc <= 0;
+      prev_fsm1 <= -1;
+      prev_fsm2 <= -1;
+      prev_fsm3 <= -1;
+      prev_ceil_state <= -1;
+    end else begin
+      cyc <= cyc + 1;
+
+      // drukuj co 1 cykl (jak miałeś)
+      if ((cyc % 1) == 0) begin
+        $display("cyc=%0d, t=%0t, fsm1=%0d, fsm2=%0d, fsm3=%0d, rd_addr=%0d, crc_out_valid=%0b, crc_out_last=%0b, crc.state=%0d",
+          cyc, $time, dut.state_fsm1, dut.state_fsm2, dut.state_fsm3, dut.rd_addr, dut.crc_out_valid, dut.crc_out_last, dut.crc.state
+        );
+      end
+
+//      // i/lub drukuj gdy zmieni się którykolwiek stan
+//      if (dut.state_fsm1 != prev_fsm1 || dut.state_fsm2 != prev_fsm2 || dut.state_fsm3 != prev_fsm3 || dut.u_Ceil.state != prev_ceil_state) begin
+//        $display("STATE CHANGE @cyc=%0d: fsm1=%0d fsm2=%0d fsm3=%0d ceil_state=%0d tb_stored=%0b params=%0b tb_ready=%0b",
+//          cyc, dut.state_fsm1, dut.state_fsm2, dut.state_fsm3, dut.u_Ceil.state,
+//          dut.tb_stored, dut.params_calc, dut.tb_ready
+//        );
+//        prev_fsm1 <= dut.state_fsm1;
+//        prev_fsm2 <= dut.state_fsm2;
+//        prev_fsm3 <= dut.state_fsm3;
+//        prev_ceil_state <= dut.u_Ceil.state;
+//      end
+    end
+  end
+
+  // === POMOCNICZE ===
+  function automatic bit is01(byte c);
+    return (c=="0" || c=="1");
+  endfunction
+
+  function automatic string trim_eol(input string s);
+    // usuń \r i \n z końca
+    while (s.len() > 0) begin
+      byte c = s[s.len()-1];
+      if (c == "\n" || c == "\r") s = s.substr(0, s.len()-2);
+      else break;
+    end
+    return s;
+  endfunction
+
+  task automatic read_tb_bits_first_line(input string path, output bit q[$]);
+    int fd;
+    string line;
+    q = {};
+    fd = $fopen(path, "r");
+    if (fd == 0) $fatal(1, "Nie moge otworzyc TB: %s", path);
+
+    if ($fgets(line, fd) == 0) $fatal(1, "TB pusty: %s", path);
+    line = trim_eol(line);
+    $fclose(fd);
+
+    for (int i = 0; i < line.len(); i++) begin
+      byte c = line[i];
+      if (is01(c)) q.push_back( (c=="1") );
+    end
+  endtask
+
+  // Golden: linie = CB, a na końcu mogą być tokeny "-1" -> ignorujemy je.
+  task automatic read_golden_codeblocks_lines(input string path);
+    int fd;
+    string line;
+    int cb = 0;
+
+    fd = $fopen(path, "r");
+    if (fd == 0) $fatal(1, "Nie moge otworzyc golden CB: %s", path);
+
+    while ($fgets(line, fd)) begin
+      bit tmp[$];
+      tmp = {};
+      line = trim_eol(line);
+
+      for (int i = 0; i < line.len(); i++) begin
+        byte c = line[i];
+
+        // IGNORUJ token "-1" (żeby nie złapać tej '1' jako bitu)
+        if (c == "-" && (i+1) < line.len() && line[i+1] == "1") begin
+          i++; // pomiń też '1'
+          continue;
+        end
+
+        if (is01(c)) tmp.push_back( (c=="1") );
+      end
+
+      if (tmp.size() > 0) begin
+        golden_cb[cb] = tmp;
+        cb++;
+      end
+    end
+
+    $fclose(fd);
+
+    if (cb == 0) $fatal(1, "Golden CB pusty: %s", path);
+  endtask
+
+  task automatic read_meta(input string path);
+    int fd;
+    string line;
+    string key;
+    string val_s;
+    int eq_pos;
+    int v;
+
+    META_A = -1;
+    META_B = -1;
+    META_CB_COUNT = -1;
+
+    fd = $fopen(path, "r");
+    if (fd == 0) $fatal(1, "Nie moge otworzyc META: %s", path);
+
+    while ($fgets(line, fd)) begin
+      line = trim_eol(line);
+
+      // znajdź '='
+      eq_pos = -1;
+      for (int i = 0; i < line.len(); i++) begin
+        if (line[i] == "=") begin
+          eq_pos = i;
+          break;
+        end
+      end
+      if (eq_pos <= 0 || eq_pos >= line.len()-1) continue;
+
+      key   = line.substr(0, eq_pos-1);
+      val_s = line.substr(eq_pos+1, line.len()-1);
+
+      if (key == "A" || key == "B" || key == "CB_COUNT") begin
+        if ($sscanf(val_s, "%d", v) != 1)
+          $fatal(1, "META: nie moge sparsowac liczby z: %s", line);
+
+        if      (key == "A")         META_A = v;
+        else if (key == "B")         META_B = v;
+        else if (key == "CB_COUNT")  META_CB_COUNT = v;
+      end
+    end
+
+    $fclose(fd);
+
+    if (META_A < 0)         $fatal(1, "META: brak A w %s", path);
+    if (META_B < 0)         $fatal(1, "META: brak B w %s", path);
+    if (META_CB_COUNT < 0)  $fatal(1, "META: brak CB_COUNT w %s", path);
+  endtask
+
+  // === GŁÓWNY TEST ===
+  initial begin
+    // init
+    rst      = 0;
+    tb_len   = '0;
+    in_valid = 0;
+    in_chunk = '0;
+    in_last  = 0;
+
+    // ścieżki plików
+    in_file       = {VEC_DIR_IN,  "/", CASE, "_in_bits", ".txt"};
+    golden_file   = {VEC_DIR_MAT, "/", CASE, "_out_bits", ".txt"};     // linie = codeblocki
+    meta_file     = {VEC_DIR_META,"/", CASE, "_meta", ".txt"};
+    out_dump_file = {VEC_DIR_RESULT,"/", CASE, "_dut_out_cb", ".txt"};
+
+    // reset (aktywny w 0)
+    repeat (5) @(posedge clk);
+    rst <= 1;
+    @(posedge clk);
+
+    // wczytaj META
+    read_meta(meta_file);
+
+    $display("META: A=%0d B=%0d CB_COUNT=%0d",
+             META_A, META_B, META_CB_COUNT);
+
+    // NA WEJŚCIE TB_LEN IDZIE A (bez TB CRC)
+    tb_len <= META_A[15:0];
+
+    // wczytaj TB i golden
+    read_tb_bits_first_line(in_file, tb_bits_q);
+    read_golden_codeblocks_lines(golden_file);
+
+    // TB plik powinien mieć co najmniej B bitów (A+CRC16/24)
+    if (tb_bits_q.size() < META_B) begin
+      $fatal(1, "TB za krotki: ma %0d bitow, a META.B=%0d", tb_bits_q.size(), META_B);
+    end
+
+    if (golden_cb.num() < META_CB_COUNT) begin
+      $fatal(1, "Golden ma za malo codeblockow: %0d, a META.CB_COUNT=%0d",
+             golden_cb.num(), META_CB_COUNT);
+    end
+
+    // otwórz dump DUT
+    fd_dump = $fopen(out_dump_file, "w");
+    if (fd_dump == 0) $fatal(1, "Nie moge otworzyc do zapisu: %s", out_dump_file);
+
+    fork
+      // =========================
+      // DRIVER (TB -> DUT)
+      // =========================
+      begin : drv
+        automatic int di = 0;
+        automatic int send_bits = META_B;      // WYSYŁAMY B (TB+TB_CRC)
+        automatic logic [W-1:0] word;
+
+        while (di < send_bits) begin
+          // zbuduj 64b słowo MSB->LSB z kolejki bitów
+          for (int b = 0; b < W; b++) begin
+            if ((di + b) < send_bits) word[W-1-b] = tb_bits_q[di + b];
+            else                      word[W-1-b] = 1'b0; // dopełnienie w ostatnim słowie
+          end
+
+          @(posedge clk);
+          in_valid <= 1'b1;
+          in_chunk <= word;
+          in_last  <= ((di + W) >= send_bits);
+          di      += W;
+        end
+
+        @(posedge clk);
+        in_valid <= 1'b0;
+        in_last  <= 1'b0;
+        in_chunk <= '0;
+      end
+
+      // =========================
+      // CHECKER (DUT -> porównanie z golden)
+      // =========================
+       begin : chk
+        automatic int cb_idx = 0;
+        automatic int bit_in_cb = 0;
+        automatic bit ob;
+
+        automatic int compare_limit;
+
+        forever begin
+          @(posedge clk);
+
+          if (out_valid) begin
+            if (golden_cb.exists(cb_idx) == 0) begin
+              $fatal(1, "Brak golden dla cb_idx=%0d", cb_idx);
+            end
+
+            // porównujemy DOKŁADNIE tyle bitów ile jest w golden dla tego CB
+            compare_limit = golden_cb[cb_idx].size();
+
+            // ===== DUMP: zapisz CAŁY chunk DUT do pliku (zawsze 64 bity) =====
+            // oraz jednocześnie porównuj tylko część < compare_limit
+            for (int b = 0; b < W; b++) begin
+              ob = out_chunk[W-1-b];
+
+              // dump zawsze
+              $fwrite(fd_dump, "%0d", ob);
+
+              // compare tylko w zakresie golden
+              if (bit_in_cb < compare_limit) begin
+                if (ob !== golden_cb[cb_idx][bit_in_cb]) begin
+                  $display("FAIL @%0t: CB=%0d bit=%0d DUT=%0b GOLD=%0b",
+                           $time, cb_idx, bit_in_cb, ob, golden_cb[cb_idx][bit_in_cb]);
+                  $fatal(1);
+                end
+              end
+
+              bit_in_cb++;
+            end
+
+            // nowa linia po KAŻDYM chunku
+            $fwrite(fd_dump, "\n");
+
+            // ===== granica codeblocka =====
+            if (out_last_chunk) begin
+              // DUT musi dać przynajmniej tyle bitów, ile jest w golden
+              if (bit_in_cb < compare_limit) begin
+                $fatal(1, "Za malo bitow w CB=%0d: DUT dał %0d, a wymagane %0d",
+                       cb_idx, bit_in_cb, compare_limit);
+              end
+
+              // między CB mają być 3 newline:
+              // 1 już poszła po chunku, więc dokładamy 2 puste linie
+              $fwrite(fd_dump, "\n\n");
+
+              if (out_last_cb) begin
+                if (cb_idx != (META_CB_COUNT - 1)) begin
+                  $fatal(1, "out_last_cb na CB=%0d, a META.CB_COUNT=%0d (ostatni powinien byc %0d)",
+                         cb_idx, META_CB_COUNT, META_CB_COUNT-1);
+                end
+
+                void'($fclose(fd_dump));
+                $display("Zapisano: %s", out_dump_file);
+                $display("PASS: %s (CB_COUNT=%0d, porównanie: tylko tyle bitów ile w golden; dump: pełny DUT)",
+                         CASE, META_CB_COUNT);
+                $finish;
+              end
+
+              cb_idx++;
+              bit_in_cb = 0;
+
+              if (cb_idx > META_CB_COUNT) begin
+                $fatal(1, "DUT wygenerował za dużo codeblocków (cb_idx=%0d > META_CB_COUNT=%0d)",
+                       cb_idx, META_CB_COUNT);
+              end
+            end
+          end
+        end
+      end
+
+      // =========================
+      // TIMEOUT WATCHDOG
+      // =========================
+      begin : wdog
+        repeat (TIMEOUT_CYCLES) @(posedge clk);
+        $fatal(1, "TIMEOUT: DUT nie zakończył (brak out_last_cb) w %0d cyklach", TIMEOUT_CYCLES);
+      end
+
+    join_none
+  end
+
+endmodule

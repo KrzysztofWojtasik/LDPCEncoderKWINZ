@@ -1,0 +1,32 @@
+\subsubsection*{Tytuł pracy} 
+\Title
+
+\subsubsection*{Streszczenie}  
+Praca~dotyczy modelowania~wybranych elementów toru nadawczego kanału PDSCH (Physical Downlink Shared Channel) w~systemie 5G NR w~oparciu o~założenia~specyfikacji 3GPP. Celem projektu jest opracowanie sprzętowych modeli bloków przetwarzania~danych, które stanowią kluczowe etapy przygotowania~strumienia~bitów do transmisji w~warstwie fizycznej. Zrealizowano moduły odpowiedzialne za~wyznaczanie sumy kontrolnej CRC (Cyclic Redundancy Check) oraz kodowanie kanałowe LDPC (Low-Density Parity-Check) stosowane w~5G NR. Implementację wykonano w~języku Verilog, z~podziałem na~niezależne moduły możliwe do integracji w~jeden łańcuch przetwarzania~po stronie nadajnika.
+
+Dodatkowo zaimplementowano zalążkową funkcjonalność związaną z~etapem \english{rate matching'u}.
+
+W ramach pracy przygotowano środowisko symulacyjne oraz zestawy wektorów testowych, umożliwiające porównanie wyników modułów Verilog z~danymi referencyjnymi. Poprawność działania~zweryfikowano funkcjonalnie w~symulacji na~wielu przypadkach testowych, uwzględniających różne długości danych oraz sytuacje brzegowe charakterystyczne dla~przetwarzania~blokowego.
+
+\subsubsection*{Słowa~kluczowe} 
+Kodowanie, 5G NR, Physical Downlink Shared Channel, Verilog, FPGA, Low-Density Parity-Check Codes
+
+\subsubsection*{Thesis title} 
+\begin{otherlanguage}{british}
+\TitleAlt
+\end{otherlanguage}
+
+\subsubsection*{Abstract} 
+\begin{otherlanguage}{british}
+This thesis presents the modeling of selected transmitter-side processing blocks of the 5G NR (New Radio) physical channel PDSCH (Physical Downlink Shared Channel) based on the assumptions of the 3GPP specification. The main objective was to develop hardware-oriented models of key stages used to prepare a~bitstream for transmission in the physical layer. The implemented blocks include CRC (Cyclic Redundancy Check) generation and 5G NR channel coding using LDPC (Low-Density Parity-Check) codes. The solution was implemented in Verilog as a~set of independent modules that can be integrated into a~single processing chain for the transmitter.
+
+In addition, an initial rate-matching mechanism was implemented.
+
+A simulation environment and test workflow were prepared, with reference test vectors, enabling direct comparison between Verilog simulation outputs and golden data. Functional correctness was verified in simulation for multiple test cases, including different payload lengths and boundary conditions typical for block-based processing.
+
+\end{otherlanguage}
+\subsubsection*{Key words}  
+\begin{otherlanguage}{british}
+Coding, 5G NR, Physical Downlink Shared Channel, Verilog, FPGA, Low-Density Parity-Check Codes
+\end{otherlanguage}
+

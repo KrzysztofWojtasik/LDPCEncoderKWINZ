@@ -1,0 +1,768 @@
+\chapter{Weryfikacja i~walidacja}
+\label{ch:weryfikacja_i_walidacja}
+
+\section{Cele i~kryteria poprawności}
+\label{sec:walidacja_cele_kryteria}
+
+Celem weryfikacji i~walidacji jest potwierdzenie, że zaimplementowany tor przetwarzania
+(od wejściowego strumienia TB do wyjściowego strumienia po kodowaniu LDPC) działa
+zgodnie z~przyjętą specyfikacją, jest deterministyczny oraz generuje wynik bitowo zgodny
+z danymi referencyjnymi dla zestawu przypadków testowych obejmujących różne konfiguracje
+długości TB i~parametrów kodowania. Weryfikacja jest realizowana przede wszystkim
+w symulacji funkcjonalnej z~wykorzystaniem wektorów referencyjnych generowanych w~MATLAB,
+co umożliwia bezpośrednie porównanie wyników symulacji HDL z~danymi idealnymi. 
+
+\subsection{Cele weryfikacji}
+
+W ramach pracy przyjęto następujące cele weryfikacji:
+\begin{itemize}
+    \item \textbf{Poprawność funkcjonalna toru:} potwierdzenie poprawnego przetwarzania TB w~pełnym łańcuchu
+    (CRC dla TB, przygotowanie do LDPC, kodowanie LDPC i~emisja wyniku) przy zachowaniu stałej szerokości słowa 64-bit.
+    \item \textbf{Deterministyczność:} dla identycznych danych wejściowych oraz identycznych metadanych sterujących
+    tor powinien generować identyczny strumień wyjściowy. 
+    \item \textbf{Bitowo-dokładna zgodność z~referencją:} weryfikacja poprzez porównanie strumienia wyjściowego z~wektorami
+    referencyjnymi w~sposób bitowo-dokładny. 
+\end{itemize}
+
+\subsection{Kryteria poprawności}
+
+Za poprawne uznaje się działanie, które spełnia jednocześnie poniższe kryteria:
+
+\begin{itemize}
+    \item \textbf{Zgodność danych:} bity danych wyjściowych są zgodne z~danymi referencyjnymi dla danego przypadku testowego,
+    przy uwzględnieniu przyjętej kolejności bitów MSB-first.
+
+    \item \textbf{Zgodność ramek i~sygnałów sterujących:} semantyka sygnałów \texttt{valid/last} jest zachowana:
+    \texttt{valid} oznacza ważność słowa w~danym cyklu, natomiast \texttt{out\_last} występuje tylko raz i~zamyka
+    emisję całego TB na wyjściu toru. 
+
+    \item \textbf{Poprawna interpretacja bitów brzegowych:} w~przypadkach, w~których granice logiczne wypadają wewnątrz słowa 64-bit, strumień musi zawierać jednoznaczne metadane pozwalające
+    odtworzyć dokładny zakres bitów danych. W projekcie rolę tę pełnią sygnały \texttt{out\_pad\_left} oraz
+    \texttt{out\_pad\_right}, które informują, ile bitów należy pominąć odpowiednio od strony MSB oraz LSB. 
+
+    \item \textbf{Odporność na przerwy w~strumieniu wejściowym:} dopuszczalne są cykle z~\texttt{in\_valid=0} pomiędzy kolejnymi
+    słowami TB; słowo jest próbkowane wyłącznie w~cyklu, w~którym \texttt{in\_valid=1}. 
+
+    \item \textbf{Spójność zachowania względem przyjętego modelu pracy:} przetwarzanie obejmuje pojedynczy TB pomiędzy resetami,
+    a~rozpoczęcie kolejnego przypadku testowego wymaga resetu, co zapewnia jednoznaczne odseparowanie transakcji. 
+\end{itemize}
+
+\section{Środowisko weryfikacji}
+\label{sec:walidacja_srodowisko}
+
+Weryfikację poprawności działania toru przeprowadzono w~oparciu o~symulację funkcjonalną modułów HDL oraz porównanie wyników z~danymi referencyjnymi (tzw. \emph{golden vectors}). Środowisko weryfikacji składa się z~trzech głównych elementów: symulatora HDL, zestawu \english{testbench'y} oraz środowiska MATLAB użytego do generacji i~analizy wektorów testowych.
+
+\subsection{Symulacja HDL (Questa)}
+Symulacje funkcjonalne wykonano z~użyciem symulatora Questa (Intel FPGA Edition). Narzędzie to zostało wykorzystane do:
+\begin{itemize}
+    \item kompilacji i~uruchamiania \english{testbench'y} napisanych w~SystemVerilog,
+    \item analizy przebiegów czasowych (waveforms) oraz stanów wewnętrznych w~procesie debugowania,
+    \item wykonywania automatycznego porównania wyników DUT (Device Under Test) z~danymi referencyjnymi.
+\end{itemize}
+
+Weryfikacja koncentruje się na poprawności funkcjonalnej (bitowo-dokładnej), a~nie na dokładnych opóźnieniach czasowych w~sensie fizycznej implementacji.
+
+\subsection{Moduły testowe (\english{testbench}) i~automatyzacja przebiegu testów}
+Dla poszczególnych modułów opracowano dedykowane \english{testbench'e} według wspólnego szkieletu:
+\begin{itemize}
+    \item wczytanie wektorów wejściowych i~metadanych z~plików tekstowych,
+    \item podanie strumienia do DUT z~zachowaniem sygnałów \texttt{valid/last} i~kolejności bitów MSB-first,
+    \item zapis strumienia wygenerowanego przez DUT do pliku wynikowego,
+    \item porównanie danych wyjściowych z~wektorem referencyjnym w~sposób bitowo-dokładny,
+    \item generowanie raportu testu (informacje o~niezgodnościach, pozycjach błędów itp.).
+\end{itemize}
+
+Jednolita struktura \english{testbench'y} ułatwia dodawanie nowych przypadków testowych oraz rozszerzanie pokrycia o~kolejne konfiguracje parametrów.
+
+\subsection{Wektory referencyjne i~narzędzia MATLAB}
+Wektory testowe oraz dane referencyjne generowane są w~MATLAB, który był używany także jako narzędzie pomocnicze do:
+\begin{itemize}
+    \item weryfikacji oczekiwanego formatu strumienia (np. kolejności bitów, obsługi paddingu),
+    \item wizualizacji pośrednich etapów przetwarzania,
+    \item analizy różnic w~przypadku wykrycia rozbieżności pomiędzy DUT a~referencją.
+\end{itemize}
+
+\section{Organizacja danych testowych i~wektorów referencyjnych}
+\label{sec:organizacja_wektorow}
+
+Weryfikacja projektu opiera się na porównaniu wyników symulacji z~danymi referencyjnymi
+(\emph{golden vectors}) wygenerowanymi w~środowisku MATLAB. Dane testowe są przechowywane
+w uporządkowanej strukturze katalogów, w~której każdy test identyfikowany jest unikalną nazwą
+przypadku (np. \texttt{A1477}, \texttt{A12107} itd.). Nazwa przypadku jest wspólnym prefiksem
+dla plików wejściowych, metadanych oraz oczekiwanych wyników.
+
+\subsection{Struktura katalogów}
+\label{subsec:wektory_struktura_katalogow}
+
+Zestawy wektorów zebrane są w~katalogu \texttt{vectors/} i~pogrupowane według weryfikowanego bloku funkcjonalnego toru. Każdy moduł posiada podkatalog \texttt{Output\_Matlab} zawierający dane referencyjne oraz \texttt{Output\_DUT} gdzie zaspisywane są wyniki wygenerowane przez DUT:
+
+\begin{itemize}
+    \item \texttt{vectors/TB\_crc/} -- wektory dla CRC dopisywanego do TB (warianty szeregowy i~równoległy),
+    \item \texttt{vectors/CB\_crc/} -- wektory dla CRC dopisywanego do CB (CRC24B),
+    \item \texttt{vectors/LDPC\_prep/} -- wektory dla przygotowania danych do kodowania LDPC,
+    \item \texttt{vectors/LDPC\_encode/} -- wektory dla kodera LDPC,
+    \item \texttt{vectors/PDSCH/} -- wektory dla modułu integrującego cały tor PDSCH,
+    \item \texttt{vectors/Parallel\_Matrices/} -- pliki zawierające wygenerowane równania XOR dla modułu \texttt{crc\_update} (warianty \texttt{CRC16}, \texttt{CRC24A}, \texttt{CRC24B}); są to gotowe przypisania postaci \texttt{crc\_out[i] = \ldots} zależne od \texttt{crc\_in[]} oraz \texttt{din[]}.
+
+
+\end{itemize}
+
+\subsection{Nazewnictwo plików i~typy danych}
+\label{subsec:wektory_typy_plikow}
+
+Dla danego przypadku testowego \texttt{Axxxx} wykorzystywane są zazwyczaj trzy podstawowe
+pliki w~\texttt{Output\_Matlab}:
+\begin{itemize}
+    \item \texttt{Axxxx\_in\_bits.txt} -- strumień wejściowy w~postaci sekwencji bitów,
+    \item \texttt{Axxxx\_out\_bits.txt} -- oczekiwany strumień wyjściowy w~postaci sekwencji bitów,
+    \item \texttt{Axxxx\_meta.txt} -- metadane opisujące parametry przypadku testowego.
+\end{itemize}
+
+Dla modułów CRC dodatkowo występuje plik:
+\begin{itemize}
+    \item \texttt{Axxxx\_crc\_only.txt} -- oczekiwane bity CRC (bez danych użytkownika).
+\end{itemize}
+
+W katalogach \texttt{Output\_DUT} \english{testbench} zapisuje wyniki DUT w~plikach o~nazwach
+z sufiksem \texttt{\_dut\_...}, np.:
+\begin{itemize}
+    \item \texttt{Axxxx\_dut\_crc\_out.txt},
+    \item \texttt{Axxxx\_dut\_stream\_out.txt},
+    \item \texttt{Axxxx\_dut\_out\_bits.txt},
+    \item \texttt{Axxxx\_dut\_out\_cb.txt}.
+\end{itemize}
+Dokładny sufiks zależy od modułu i~sposobu zapisu wyjścia w~danym teście.
+
+\subsection{Format plików bitowych}
+\label{subsec:wektory_format_bitow}
+
+Pliki \texttt{Axxxx\_in\_bits.txt} oraz \texttt{Axxxx\_out\_bits.txt} przechowują strumień jako
+znaki \texttt{0} i~\texttt{1}, gdzie \texttt{Axxxx} jest identyfikatorem przypadku testowego.
+W zależności od modułu strumień może być zapisany:
+\begin{itemize}
+    \item jako jedna długa linia bitów (ciąg znaków),
+    \item jako kilka linii (np. podział na fragmenty lub bloki),
+    \item z~separatorami pomiędzy blokami kodowymi.
+\end{itemize}
+
+W testach związanych z~segmentacją oraz kodowaniem LDPC w~plikach generowanych w~MATLAB mogą pojawiać się
+znaczniki \texttt{-1}, które reprezentują bity typu \emph{filler} (dopełnienie logiczne w~części systematycznej CB).
+Nie są to dane binarne (\texttt{0/1}) przeznaczone do transmisji, dlatego na etapie porównywania wyników
+testbench pomija wszystkie wystąpienia \texttt{-1}. Porównanie z~wyjściem DUT wykonywane jest wyłącznie
+dla rzeczywistych bitów strumienia, tj. \texttt{0} i~\texttt{1}.
+
+
+\subsection{Format plików metadanych}
+\label{subsec:wektory_meta}
+
+Pliki \texttt{Axxxx\_meta.txt} mają postać tekstową \texttt{klucz=wartość}, po jednej parze na linię.
+Zawierają parametry niezbędne do skonfigurowania testu oraz do interpretacji strumienia.
+Zakres metadanych zależy od modułu. W praktyce spotykane są m.in.:
+\begin{itemize}
+    \item identyfikator przypadku: \texttt{NAME},
+    \item długości bitowe na wybranych etapach toru (np. \texttt{A}, \texttt{B}, \texttt{BC}, \texttt{K}, \texttt{KCB}),
+    \item wybór grafu bazowego i~$Z_c$ (np. \texttt{BG}, \texttt{ZC}),
+    \item informacja o~dopełnieniach (\texttt{FILLER\_CNT}),
+    \item parametry CRC (np. \texttt{POLY}, \texttt{L}).
+\end{itemize}
+
+Metadane stanowią punkt wspólny pomiędzy MATLAB a~modułami testowymi: MATLAB zapisuje parametry testu,
+a testbench odczytuje je i~podaje na wejścia modułu w~HDL. Służą również do ułatwienia analizy plików wyjściowych przyspieszając oddzielenie poszczególnych bloków strumienia.
+
+\section{Testy modułowe}
+\label{sec:testy_modulowe}
+
+Testy modułowe mają na celu potwierdzenie poprawności funkcjonalnej poszczególnych bloków toru.
+Weryfikacja opiera się na porównaniu wyników symulacji (DUT) z~wektorami referencyjnymi generowanymi w~MATLAB.
+Testy są realizowane w~symulatorze Questa z~użyciem dedykowanych \english{testbench'y} w~języku SystemVerilog,
+zbudowanych według wspólnego szkieletu.
+
+\subsection{Dane testowe, organizacja przypadków i~format plików}
+\label{subsec:test_data_organization}
+
+Każdy przypadek testowy jest identyfikowany parametrem \texttt{CASE} w~postaci \texttt{Axxxx}
+(np. \texttt{A1477}, \texttt{A12107}).
+Dla każdego modułu zestaw danych jest uporządkowany w~analogiczny sposób: źródłem referencji są pliki generowane w~MATLAB,
+a \english{testbench} zapisuje wyniki DUT do osobnego katalogu wynikowego.
+
+Typowy komplet plików dla przypadku \texttt{CASE} obejmuje:
+\begin{itemize}
+    \item \texttt{<CASE>\_in\_bits.txt} -- wejściowy strumień bitów (\texttt{0/1}),
+    \item \texttt{<CASE>\_out\_bits.txt} -- referencyjny strumień wyjściowy (\texttt{0/1}),
+    \item \texttt{<CASE>\_meta.txt} -- metadane w~formacie \texttt{KEY=VALUE}.
+\end{itemize}
+
+W plikach \texttt{meta} występują parametry opisujące przypadek (np. długości na poszczególnych etapach,
+wybór grafu bazowego i~liftingu, informacje o~dopełnieniach). Dla modułu top-level \texttt{PDSCHTx}
+\english{testbench} wykorzystuje wprost długość TB zapisaną w~metadanych i~ustawia \texttt{tb\_len}.
+
+W ramach pracy użyto stałego zestawu \textbf{20} przypadków testowych (wspólnego dla weryfikowanych bloków):
+\texttt{\{A57,\allowbreak\ A463,\allowbreak\ A983,\allowbreak\ A1477,\allowbreak\ A2193,\allowbreak\ A3187,\allowbreak\ A4219,\allowbreak\ A5297,\allowbreak\ A6473,\allowbreak\ A7991,\allowbreak\ A9839,\allowbreak\ A12107,\allowbreak\ A14963,\allowbreak\ A18371,\allowbreak\ A22159,\allowbreak\ A26841,\allowbreak\ A31777,\allowbreak\ A38693,\allowbreak\ A46927,\allowbreak\ A59761\}}.
+
+\begin{itemize}
+    \item \textbf{Graf bazowy:} BG1 -- 14 przypadków, BG2 -- 6 przypadków.
+    \item \textbf{Liczba bloków kodowych:} \texttt{CB\_COUNT} $\in \{1,2,3,4,5,6,8\}$, w~tym:
+          1 CB -- 10 przypadków, 2 CB -- 3 przypadki, 3 CB -- 2 przypadki, 4 CB -- 2 przypadki,
+          5 CB -- 1 przypadek, 6 CB -- 1 przypadek, 8 CB -- 1 przypadek.
+    \item \textbf{Lifting:} $Z_c \in \{13,60,104,160,208,224,240,256,288,320,352,384\}$, przy czym w~zestawie:
+          $Z_c=352$ występuje 4 razy, $Z_c=384$ występuje 4 razy, $Z_c=288$ i~$Z_c=320$ po 2 razy,
+          pozostałe wartości po 1 razie.
+    \item \textbf{Zakres długości TB:} \texttt{A} od 57 do 59761 bitów.
+    \item \textbf{Ogon TB względem 64 bitów:} w~tym zestawie wszystkie przypadki spełniają $A \bmod 64 \neq 0$,
+          czyli każdy test wymusza obsługę niepełnego ostatniego słowa TB.
+\end{itemize}
+
+\subsection{Wspólny szkielet \english{testbench'y} i~zasady porównywania}
+\label{subsec:tb_common_skeleton}
+
+Każdy moduł testowy:
+\begin{itemize}
+    \item wybiera przypadek testowy poprzez parametr \texttt{CASE},
+    \item wczytuje pliki wejściowe, referencyjne oraz metadane,
+    \item rekonstruuje strumień wejściowy w~kolejności \textbf{MSB-first},
+    \item podaje dane do DUT z~użyciem sterowania \texttt{valid/last},
+    \item zapisuje strumień wygenerowany przez DUT do pliku w~katalogu wynikowym,
+    \item wykonuje porównanie bitowo-dokładne z~referencją oraz generuje raport diagnostyczny.
+\end{itemize}
+
+Istotną cechą \english{testbench'y} jest to, że nie przerywają symulacji przy pierwszej niezgodności:
+błędy są zliczane i~raportowane, a~test kontynuuje pracę aż do warunku zakończenia (zwykle \texttt{out\_last})
+lub do osiągnięcia limitu czasu (\texttt{TIMEOUT}). Takie podejście ułatwia diagnostykę, ponieważ pozwala
+zobaczyć pełny „kształt” rozjazdu (np. przesunięcie, utrata fragmentu, dodatkowe bity), a~nie tylko pierwszy błąd.
+
+W testach związanych z~LDPC w~plikach referencyjnych mogą występować tokeny \texttt{-1}.
+W projekcie odpowiadają one bitom typu \emph{filler} i~są pomijane w~porównaniu (porównanie dotyczy wyłącznie bitów \texttt{0/1}),
+ponieważ DUT nie emituje fillerów jako bitów binarnych na wyjściu.
+
+\subsection{Test modułu \texttt{crc\_serial}}
+\label{subsec:tb_crc_serial}
+
+Test modułowy dla \texttt{crc\_serial} weryfikuje szeregowe (1 bit/cykl) dopisywanie CRC:
+\begin{itemize}
+    \item wejściem jest strumień bitów \texttt{0/1} z~\texttt{in\_valid} oraz \texttt{in\_last},
+    \item wyjściem jest strumień wiadomość + CRC, gdzie \texttt{out\_last} występuje na ostatnim bicie CRC,
+    \item \english{testbench} zapisuje strumień DUT do pliku oraz porównuje go bitowo z~referencją.
+\end{itemize}
+Dane wyjściowe są zapisywane w~postaci strumienia bitów w~jednej linii.
+
+\subsection{Test modułów \texttt{crc\_tb\_parallel} oraz \texttt{crc\_cb\_parallel}}
+\label{subsec:tb_crc_parallel}
+
+Testy \texttt{crc\_tb\_parallel} oraz \texttt{crc\_cb\_parallel} weryfikują dopisywanie CRC w~torze 64-bitowym
+(z uwzględnieniem końcówki TB/CB, która może być niepełnym słowem).
+\english{testbench} podaje kolejne słowa 64-bit z~\texttt{in\_valid/in\_last}, konfiguruje DUT metadanymi,
+porównuje strumień wyjściowy z~referencją oraz zapisuje wynik DUT do pliku.
+Dane wyjściowe są zapisywane w~postaci strumienia bitów w~jednej linii.
+
+\subsection{Test modułu \texttt{LDPC\_prep}}
+\label{subsec:tb_ldpc_prep}
+
+Testy \texttt{LDPC\_prep} obejmują poprawność segmentacji TB na CB, dopisania CRC24B dla CB,
+przygotowania strumienia danych CB w~formacie wejściowym dla kodera LDPC oraz generacji metadanych sterujących.
+W przypadku obecności tokenów \texttt{-1} w~plikach referencyjnych są one ignorowane.
+
+Ponieważ długość danych w~CB nie musi być wielokrotnością 64, w~ostatnim słowie danego CB mogą pojawić się
+bity dopełnienia (zera) wynikające wyłącznie z~wyrównania do granicy słowa 64-bit.
+Na etapie weryfikacji porównywane są wyłącznie bity faktycznie należące do CB (zgodnie z~długością/metadanymi),
+natomiast bity dopełnienia nie wpływają na wynik porównania.
+
+Dane wyjściowe są zapisywane w~postaci słowa 64-bitowego na linię (MSB-first). Po odebraniu sygnału
+\texttt{out\_last} wpisywanych jest kilka znaków nowej linii w~celu wizualnego oddzielenia CB.
+
+\subsection{Test modułu \texttt{LDPC\_encode}}
+\label{subsec:tb_ldpc_encode}
+
+Testy \texttt{LDPC\_encode} obejmują poprawność kodowania QC-LDPC dla różnych konfiguracji (BG, $Z_c$, liczba filler bits),
+zgodność bitowo-dokładną z~referencją MATLAB oraz poprawną obsługę ramek i~zakończenia całego TB.
+
+Ponieważ strumień wyjściowy jest przenoszony w~słowach 64-bit, DUT wystawia metadane \texttt{out\_pad\_left} oraz
+\texttt{out\_pad\_right} opisujące liczbę bitów nieistotnych w~danym słowie odpowiednio od strony MSB i~LSB.
+Zapis do pliku oraz porównanie z~referencją wykonywane są wyłącznie dla bitów po uwzględnieniu paddingu
+(tj. po odrzuceniu \texttt{out\_pad\_left} bitów z~początku słowa i~\texttt{out\_pad\_right} bitów z~końca słowa).
+Dzięki temu bity dopełnienia wynikające z~wyrównań do 64 bitów nie wpływają na wynik weryfikacji.
+
+Dane wyjściowe są zapisywane w~postaci słowa 64-bitowego na linię (MSB-first) po zastosowaniu selekcji bitów.
+
+\subsection{Test integracyjny modułu top-level \texttt{PDSCHTx}}
+\label{subsec:tb_pdschtx}
+
+Dla modułu integrującego tor (\texttt{PDSCHTx}) zastosowano testbench utrzymany w~tej samej konwencji,
+co testy modułowe: wejście + golden + meta z~MATLAB oraz porównanie bitowo-dokładne wyjścia DUT.
+Test weryfikuje poprawność współdziałania modułów w~jednym strumieniu danych, a~zakończenie całej transakcji
+jest sygnalizowane pojedynczym impulsem \texttt{out\_last} na końcu TB.
+
+Dane wyjściowe są zapisywane i~porównywane identycznie jak w~przypadku \texttt{LDPC\_encode},
+tj. z~uwzględnieniem \texttt{out\_pad\_left/out\_pad\_right} oraz pominięciem tokenów \texttt{-1} w~referencji.
+
+
+
+
+\section{Analiza wyników testów i~symulacji}
+\label{sec:analiza_symulacji}
+
+Wszystkie przypadki testowe zakończyły się poprawnie (brak rozbieżności bitowych względem referencji MATLAB),
+dlatego analiza skupia się na metrykach czasowych uzyskanych z~symulacji. Dla każdego modułu oraz wybranych
+przypadków testowych zebrano czasy (w cyklach zegara) odpowiadające kluczowym zdarzeniom na interfejsie
+\texttt{valid/last}.
+
+\subsection{Definicje zdarzeń i~metryk czasowych}
+\label{subsec:latency_definitions}
+
+Dla każdego przypadku testowego rejestrowane są cztery znaczniki czasowe (w cyklach zegara):
+\begin{itemize}
+    \item $t_{\mathrm{in\_first}}$ -- pierwszy cykl z~poprawnym wejściem (\texttt{in\_valid=1}),
+    \item $t_{\mathrm{in\_last}}$  -- cykl ostatniego elementu wejścia (\texttt{in\_valid=1 \&\& in\_last=1}),
+    \item $t_{\mathrm{out\_first}}$ -- pierwszy cykl z~poprawnym wyjściem (\texttt{out\_valid=1}),
+    \item $t_{\mathrm{out\_last}}$  -- cykl zakończenia ramki (\texttt{out\_valid=1 \&\& out\_last=1}).
+\end{itemize}
+
+Na tej podstawie wyznaczono następujące metryki:
+\[
+L_{\mathrm{start}} = t_{\mathrm{out\_first}} - t_{\mathrm{in\_first}},
+\qquad
+T_{\mathrm{in}} = t_{\mathrm{in\_last}} - t_{\mathrm{in\_first}} + 1,
+\]
+\[
+T_{\mathrm{flush}} = t_{\mathrm{out\_last}} - t_{\mathrm{in\_last}},
+\qquad
+T_{\mathrm{total}} = t_{\mathrm{out\_last}} - t_{\mathrm{in\_first}} + 1.
+\]
+Metryka $L_{\mathrm{start}}$ opisuje opóźnienie pojawienia się pierwszego wyniku, $T_{\mathrm{in}}$ czas przyjmowania danych wejściowych,
+$T_{\mathrm{flush}}$ czas „domknięcia” po zakończeniu wejścia (np. dopisanie CRC, kodowanie, emisja), natomiast $T_{\mathrm{total}}$ całkowity czas przetworzenia ramki
+liczony od pierwszego elementu wejścia do \texttt{out\_last}.
+
+
+
+
+\subsection{Wybrane przypadki testowe i~ich parametry}
+\label{subsec:selected_cases_params}
+
+Do analizy wybrano 7 przypadków testowych, obejmujących skrajnie krótkie TB, przypadki w~pobliżu progu doboru CRC,
+oraz przypadki wieloblokowe (większa liczba CB). Parametry pochodzą z~plików \texttt{<CASE>\_meta.txt} wygenerowanych w~MATLAB.
+
+Zestawienie parametrów analizowanych przypadków znajduje się w~tabeli \ref{tab:selected_cases_params}.
+
+\begin{table}[!ht]
+\centering
+\caption{Parametry wybranych przypadków testowych (metadane MATLAB).}
+\label{tab:selected_cases_params}
+\begin{tabular}{lrrrrrr}
+\hline
+CASE & $A$ [b] & CRC(TB) & BG & $Z_c$ & $C$ & $N_\mathrm{filler}$ \\
+\hline
+A57     & 57     & CRC16  & 2 & 13  & 1 & 57  \\
+A3187   & 3187   & CRC16  & 2 & 352 & 1 & 317 \\
+A4219   & 4219   & CRC24A & 1 & 208 & 1 & 333 \\
+A12107  & 12107  & CRC24A & 1 & 288 & 2 & 246 \\
+A18371  & 18371  & CRC24A & 1 & 288 & 3 & 180 \\
+A26841  & 26841  & CRC24A & 1 & 320 & 4 & 299 \\
+A59761  & 59761  & CRC24A & 1 & 352 & 8 & 246 \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Latencja modułu \texttt{crc\_serial}}
+\label{subsec:lat_crc_serial}
+
+Tabela \ref{tab:lat_crc_serial} przedstawia metryki czasowe modułu \texttt{crc\_serial}.
+W tym wariancie dane są przetwarzane bit-po-bicie (1 bit/cykl), dlatego $T_{\mathrm{in}}$ jest wprost równe długości TB w~bitach
+(\texttt{A}). Stała różnica pomiędzy $t_{\mathrm{in\_last}}$ i~$t_{\mathrm{out\_last}}$ wynika z~dopisania CRC po zakończeniu danych
+(ogon ramki), co znajduje odzwierciedlenie w~$T_{\mathrm{flush}}$.
+
+
+\begin{table}[!ht]
+\centering
+\caption{Metryki czasowe modułu \texttt{crc\_serial} (cykle).}
+\label{tab:lat_crc_serial}
+\begin{tabular}{lrrrr}
+\hline
+CASE & $L_{start}$ & $T_{in}$ & $T_{flush}$ & $T_{total}$ \\
+\hline
+A57     & 1 & 57    & 17 & 74 \\
+A3187   & 1 & 3187  & 17 & 3204 \\
+A4219   & 1 & 4219  & 25 & 4244 \\
+A12107  & 1 & 12107 & 25 & 12132 \\
+A18371  & 1 & 18371 & 25 & 18396 \\
+A26841  & 1 & 26841 & 25 & 26866 \\
+A59761  & 1 & 59761 & 25 & 59786 \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Latencja modułu \texttt{crc\_tb\_parallel}}
+\label{subsec:lat_crc_tb_parallel}
+
+W analizie pominięto osobne testy \texttt{crc\_cb\_parallel}, ponieważ architektura oraz sposób działania są równoważne
+z \texttt{crc\_tb\_parallel}.
+
+Wyniki dla \texttt{crc\_tb\_parallel} zestawiono w~tabeli \ref{tab:lat_crc_tb_parallel}.
+W porównaniu do wariantu szeregowego, przetwarzanie pełnych słów 64-bit odbywa się równolegle,
+a operacje bitowe są ograniczone do końcówki TB (niepełnego słowa) oraz dopisania CRC.
+Metryka $T_{\mathrm{flush}}$ pozwala oszacować koszt „domknięcia” ramki po przyjęciu ostatniego słowa wejściowego.
+
+
+
+\begin{table}[!ht]
+\centering
+\caption{Metryki czasowe modułu \texttt{crc\_tb\_parallel} (cykle).}
+\label{tab:lat_crc_tb_parallel}
+\begin{tabular}{lrrrr}
+\hline
+CASE & $L_{start}$ & $T_{in}$ & $T_{flush}$ & $T_{total}$ \\
+\hline
+A57     & 68 & 1   & 77 & 78 \\
+A3187   & 1  & 50  & 71 & 121 \\
+A4219   & 1  & 66  & 87 & 153 \\
+A12107  & 1  & 190 & 39 & 229 \\
+A18371  & 1  & 288 & 31 & 319 \\
+A26841  & 1  & 420 & 53 & 473 \\
+A59761  & 1  & 934 & 77 & 1011 \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Latencja modułu \texttt{LDPC\_prep}}
+\label{subsec:lat_ldpc_prep}
+
+Tabela \ref{tab:lat_ldpc_prep} pokazuje metryki czasowe modułu \texttt{LDPC\_prep}.
+W tym etapie znaczną część czasu stanowi przygotowanie CB (segmentacja, dopisanie CRC24B, wyznaczenie parametrów),
+co ujawnia się w~dużym $L_{\mathrm{start}}$ oraz $T_{\mathrm{flush}}$ dla dłuższych przypadków.
+Ponieważ moduł generuje strumień CB oraz metadane sterujące, czas przetwarzania rośnie wraz z~długością TB i~liczbą CB.
+
+
+\begin{table}[!ht]
+\centering
+\caption{Metryki czasowe modułu \texttt{LDPC\_prep} (cykle).}
+\label{tab:lat_ldpc_prep}
+\begin{tabular}{lrrrr}
+\hline
+CASE & $L_{start}$ & $T_{in}$ & $T_{flush}$ & $T_{total}$ \\
+\hline
+A57     & 21   & 2   & 21    & 23 \\
+A3187   & 329  & 51  & 329   & 380 \\
+A4219   & 201  & 67  & 201   & 268 \\
+A12107  & 6388 & 190 & 6734  & 6924 \\
+A18371  & 6458 & 288 & 6988  & 7276 \\
+A26841  & 7071 & 420 & 7851  & 8271 \\
+A59761  & 7866 & 935 & 9439  & 10374 \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Latencja modułu \texttt{LDPC\_encode}}
+\label{subsec:lat_ldpc_encode}
+
+Wyniki latencji kodera \texttt{LDPC\_encode} przedstawiono w~tabeli \ref{tab:lat_ldpc_encode}.
+Zgodnie z~architekturą projektu koder przechodzi do fazy emisji dopiero po zakończeniu przetwarzania wszystkich CB,
+co powoduje, że $T_{\mathrm{flush}}$ dominuje w~całkowitym czasie $T_{\mathrm{total}}$.
+Jest to kluczowy element wpływający na opóźnienie całego toru.
+
+
+\begin{table}[!ht]
+\centering
+\caption{Metryki czasowe modułu \texttt{LDPC\_encode} (cykle).}
+\label{tab:lat_ldpc_encode}
+\begin{tabular}{lrrrr}
+\hline
+CASE & $L_{start}$ & $T_{in}$ & $T_{flush}$ & $T_{total}$ \\
+\hline
+A57     & 1784  & 2   & 1826  & 1828 \\
+A3187   & 4612  & 51  & 4852  & 4903 \\
+A4219   & 6583  & 67  & 6760  & 6827 \\
+A12107  & 14856 & 96  & 15395 & 15491 \\
+A18371  & 22262 & 97  & 23122 & 23219 \\
+A26841  & 30363 & 106 & 31566 & 31672 \\
+A59761  & 70180 & 118 & 73139 & 73257 \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Latencja toru top-level \texttt{PDSCHTx}}
+\label{subsec:lat_pdschtx}
+
+Tabela \ref{tab:lat_pdschtx} zawiera metryki czasowe modułu top-level \texttt{PDSCHTx}.
+Wartości te obejmują łączne opóźnienie toru przetwarzania od przyjęcia TB do zakończenia emisji.
+Porównanie tabeli \ref{tab:lat_pdschtx} z~tabelą \ref{tab:lat_ldpc_encode} pokazuje,
+że latencja całego toru jest w~największym stopniu determinowana przez etap kodowania LDPC.
+
+
+\begin{table}[!ht]
+\centering
+\caption{Metryki czasowe modułu top-level \texttt{PDSCHTx} (cykle).}
+\label{tab:lat_pdschtx}
+\begin{tabular}{lrrrr}
+\hline
+CASE & $L_{start}$ & $T_{in}$ & $T_{flush}$ & $T_{total}$ \\
+\hline
+A57     & 1873  & 1   & 1915  & 1916 \\
+A3187   & 4942  & 50  & 5273  & 5323 \\
+A4219   & 6785  & 66  & 6963  & 7029 \\
+A12107  & 21588 & 190 & 22033 & 22223 \\
+A18371  & 29246 & 288 & 29915 & 30203 \\
+A26841  & 38208 & 420 & 39097 & 39517 \\
+A59761  & 79604 & 934 & 81747 & 82681 \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Wnioski z~analizy latencji}
+\label{subsec:latency_conclusions}
+
+Dla wszystkich analizowanych przypadków dominującym składnikiem czasu przetwarzania jest moduł \texttt{LDPC\_encode}.
+Wynika to z~faktu, że w~tej architekturze koder wykonuje obliczenia po zakończeniu przyjęcia danych i~przechodzi do fazy emisji
+dopiero po przetworzeniu pełnego zestawu CB, co powoduje, że $T_{\mathrm{flush}}$ stanowi większość czasu $T_{\mathrm{total}}$.
+
+Moduły CRC (zarówno wariant szeregowy, jak i~równoległy) mają relatywnie niewielki wpływ na całkowitą latencję toru,
+a ich czas domknięcia jest ograniczony głównie do dopisania CRC oraz obsługi niepełnej końcówki.
+
+\subsection{Narzut magistrali 64-bit}
+\label{subsec:pdsch_padding_overhead}
+
+Ponieważ tor pracuje na stałej magistrali 64-bit, nie w~każdym cyklu wszystkie bity słowa niosą dane użyteczne.
+Granice logicznych danych nie muszą pokrywać się z~granicami słów, dlatego moduł \texttt{PDSCHTx} wystawia metadane
+\texttt{out\_pad\_left} oraz \texttt{out\_pad\_right}, które określają liczbę bitów do pominięcia odpowiednio od strony MSB i~LSB.
+Dla $j$-tego słowa wyjściowego liczba bitów użytecznych wynosi:
+\[
+v_j = 64 - \texttt{out\_pad\_left}_j - \texttt{out\_pad\_right}_j.
+\]
+Sumaryczna liczba bitów użytecznych w~strumieniu to $V=\sum_j v_j$, natomiast liczba bitów „przeniesionych” magistralą
+(licząc 64 bity na każde słowo z~\texttt{out\_valid=1}) wynosi $64\cdot N$, gdzie $N$ to liczba słów wyjściowych.
+Z tego wyznacza się narzut oraz wykorzystanie magistrali:
+\[
+B_{\mathrm{waste}} = 64\cdot N - V,
+\qquad
+\eta = \frac{V}{64\cdot N}.
+\]
+
+W modułach testowych dla \texttt{PDSCHTx} strumień DUT jest zapisywany do pliku wynikowego już po uwzględnieniu
+\texttt{out\_pad\_left/right}, tzn. do pliku trafiają wyłącznie bity uznane za ważne w~danym słowie.
+W praktyce oznacza to, że:
+\begin{itemize}
+    \item $N$ odpowiada liczbie niepustych linii w~pliku \texttt{<CASE>\_dut\_out\_bits.txt},
+    \item $V$ jest sumą długości tych linii (liczby zapisanych bitów 0/1),
+    \item $\overline{v}=V/N$ opisuje średnią liczbę bitów użytecznych na jedno słowo magistrali.
+\end{itemize}
+
+Wyniki dla analizowanych przypadków przedstawiono w~tabeli \ref{tab:pdsch_bus_overhead}. Zauważalne jest,
+że dla bardzo krótkich ramek (np. A57) narzut wyrównań do 64 bitów dominuje, natomiast dla dłuższych ramek
+wykorzystanie magistrali rośnie i~zbliża się do 100\%.
+
+\begin{table}[!ht]
+\centering
+\caption{Narzut wynikający z~pracy na magistrali.}
+\label{tab:pdsch_bus_overhead}
+\begin{tabular}{lrrrrr}
+\hline
+CASE & $N$ [słów] & $V$ [bitów] & $\eta$ [\%] & $B_{\mathrm{waste}}$ [bitów] & $\overline{v}$ [bit/słowo] \\
+\hline
+A57     & 44   & 593    & 21.06 & 2223  & 13.48 \\
+A3187   & 292  & 17283  & 92.48 & 1405  & 59.19 \\
+A4219   & 245  & 13395  & 85.43 & 2285  & 54.67 \\
+A12107  & 634  & 37524  & 92.48 & 3052  & 59.19 \\
+A18371  & 954  & 56484  & 92.51 & 4572  & 59.21 \\
+A26841  & 1304 & 83284  & 99.79 & 172   & 63.87 \\
+A59761  & 3064 & 183888 & 93.77 & 12208 & 60.02 \\
+\hline
+\end{tabular}
+\end{table}
+
+\section{Wyniki syntezy i~analiza implementacyjna w~FPGA}
+\label{sec:synteza_i_analiza_impl}
+
+W niniejszej sekcji przedstawiono wyniki pełnej kompilacji projektu w~środowisku Intel Quartus Prime
+(Analiza i~Synteza, Fitter oraz analiza czasowa TimeQuest). Celem jest ocena realizowalności projektu
+w wybranym układzie FPGA oraz wskazanie ograniczeń czasowych wynikających z~bieżącej implementacji.
+
+\subsection{Konfiguracja narzędzi i~założenia kompilacji}
+\label{subsec:setup_quartus}
+
+Tabela \ref{tab:impl_setup} podsumowuje konfigurację narzędzi oraz docelowego układu FPGA.
+Analiza czasowa została wykonana w~TimeQuest na podstawie pliku ograniczeń SDC,
+w którym zdefiniowano pojedynczy zegar \texttt{clk} o~okresie 10~ns (100~MHz).
+
+\begin{table}[!ht]
+\centering
+\caption{Konfiguracja kompilacji i~docelowego układu FPGA.}
+\label{tab:impl_setup}
+\begin{tabular}{ll}
+\hline
+Element & Wartość \\
+\hline
+Narzędzie & Intel Quartus Prime Lite 25.1std.0 (Build 1129, 2025-10-21) \\
+Top-level entity & \texttt{PDSCHTx} \\
+Rodzina FPGA & Cyclone V \\
+Układ docelowy & 5CSXFC6D6F31C6 \\
+Plik SDC & \texttt{rtl/clk.sdc} (Status: OK) \\
+Zegar & \texttt{clk}, okres 10.000 ns (100.0 MHz) \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Wykorzystanie zasobów układu}
+\label{subsec:resource_usage}
+
+Zestawienie wykorzystania zasobów po etapie Fitter przedstawiono w~tabeli \ref{tab:resource_usage}.
+Wyniki potwierdzają, że projekt mieści się w~docelowym układzie FPGA z~istotnym zapasem zasobów,
+szczególnie w~obszarze pamięci blokowej oraz jednostek DSP.
+
+\begin{table}[!ht]
+\centering
+\caption{Wykorzystanie zasobów po kompilacji (Fitter Summary).}
+\label{tab:resource_usage}
+\begin{tabular}{lrrr}
+\hline
+Zasób & Wykorzystanie & Dostępne & Udział \\
+\hline
+ALM & 12\,177 & 41\,910 & 29\% \\
+Rejestry & 6\,805 & -- & -- \\
+Piny I/O & 162 & 499 & 32\% \\
+Pamięć (bity) & 393\,216 & 5\,662\,720 & 7\% \\
+Bloki RAM & 46 & 553 & 8\% \\
+DSP & 5 & 112 & 4\% \\
+PLL & 0 & 15 & 0\% \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{Analiza czasowa i~maksymalna częstotliwość pracy}
+\label{subsec:timing_analysis}
+
+Analiza czasowa została przeprowadzona w~TimeQuest dla zegara \texttt{clk} o~wymaganym okresie 10~ns (100~MHz).
+Podsumowanie wyników dla najważniejszych sprawdzeń (setup/hold oraz minimalna szerokość impulsu) pokazano w~tabeli
+\ref{tab:timing_summary}.
+
+Weryfikacja \textit{setup} nie została spełniona dla najgorszego narożnika (Slow 1100mV 85$^\circ$C),
+co objawia się ujemnym slackiem. Oznacza to, że przy zadanym ograniczeniu 100~MHz projekt wymaga optymalizacji
+(logiki lub architektury) albo obniżenia częstotliwości zegara. Z drugiej strony sprawdzenia \textit{hold}
+oraz minimalnej szerokości impulsu (pulse width) są spełnione (slack dodatni).
+
+\begin{table}[!ht]
+\centering
+\caption{Podsumowanie analizy czasowej (TimeQuest).}
+\label{tab:timing_summary}
+\begin{tabular}{llrr}
+\hline
+Typ sprawdzenia & Corner & Worst Slack [ns] & Wniosek \\
+\hline
+Setup (wymóg 10 ns) & Slow 1100mV 85$^\circ$C & -4.203 & NIESPEŁNIONE \\
+Hold & Slow 1100mV 85$^\circ$C & 0.241 & SPEŁNIONE \\
+Min Pulse Width & Slow 1100mV 85$^\circ$C & 3.857 & SPEŁNIONE \\
+\hline
+\end{tabular}
+\end{table}
+
+Ujemny slack dla \textit{setup} pozwala oszacować osiągalną częstotliwość maksymalną.
+Dla najgorszego narożnika (Slow 1100mV 85$^\circ$C) raport wskazuje $F_{\max}\approx 70.41$~MHz,
+co odpowiada efektywnemu okresowi krytycznej ścieżki rzędu $T_{\mathrm{crit}}\approx 14.203$~ns.
+Dla tego samego typu narożnika w~niższej temperaturze (Slow 1100mV 0$^\circ$C) uzyskano
+$F_{\max}\approx 71.15$~MHz.
+
+\subsection{Wnioski z~kompilacji}
+\label{subsec:impl_conclusions}
+
+Na podstawie tabel \ref{tab:resource_usage} oraz \ref{tab:timing_summary} można sformułować następujące wnioski:
+\begin{itemize}
+    \item Projekt bez problemu mieści się w~docelowym układzie Cyclone V (29\% ALM, 7\% pamięci bitowej, 4\% DSP),
+          co pozostawia zapas na ewentualną rozbudowę funkcjonalną.
+    \item Ograniczeniem bieżącej implementacji jest czas krytycznej ścieżki: dla constraintu 100~MHz
+          analiza \textit{setup} wykazuje ujemny slack (-4.203~ns), a~raportowany $F_{\max}$ wynosi ok. 70--71~MHz.
+    \item Sprawdzenia \textit{hold} oraz minimalnej szerokości impulsu są spełnione (slack dodatni),
+          co wskazuje na brak problemów z~nadmiernie krótkimi ścieżkami lub generacją zegara.
+\end{itemize}
+
+W kolejnych etapach pracy (lub jako kierunek rozwoju) możliwa jest optymalizacja architektury i/lub logiki,
+aby skrócić ścieżki krytyczne (np. przez dodatkowe potokowanie, reorganizację buforowania lub redukcję logiki kombinacyjnej
+na ścieżkach sterujących), jednak nie jest to wymagane do wykazania poprawnej syntezowalności projektu
+i oceny jego realizowalności w~wybranym FPGA.
+
+\subsection{Szacowana przepustowość toru na podstawie $F_{\max}$ i~latencji symulacyjnej}
+\label{subsec:throughput_estimation}
+
+Wyniki analizy czasowej wskazują, że dla najgorszego narożnika (Slow 1100mV 85$^\circ$C) osiągalna częstotliwość
+wynosi w~przybliżeniu $F_{\max}\approx 70.41$~MHz.
+Równocześnie, w~rozdziale poświęconym weryfikacji wyznaczono latencje w~cyklach zegara dla wybranych przypadków testowych.
+Pozwala to oszacować realnie osiągalną przepustowość toru.
+
+\paragraph{Metryka end-to-end (goodput TB).}
+Dla pojedynczego przypadku testowego czas przetworzenia całego TB można przybliżyć jako:
+\[
+T_{\mathrm{E2E}} = \frac{N_{\mathrm{cykli}}}{F_{\max}},
+\qquad
+N_{\mathrm{cykli}} = t_{\mathrm{out,last}} - t_{\mathrm{in,first}} + 1,
+\]
+gdzie $t_{\mathrm{in,first}}$ oznacza cykl wystąpienia pierwszego ważnego słowa na wejściu toru,
+a $t_{\mathrm{out,last}}$ cykl wystąpienia ostatniego ważnego słowa na wyjściu (z \texttt{out\_last=1}).
+Efektywna przepustowość w~sensie bitów informacji TB na sekundę wynosi:
+\[
+R_{\mathrm{TB}} = \frac{A}{T_{\mathrm{E2E}}} = \frac{A\cdot F_{\max}}{N_{\mathrm{cykli}}},
+\]
+gdzie $A$ to długość TB w~bitach (z metadanych przypadku).
+
+W tabeli \ref{tab:pdsch_throughput_tb} zestawiono oszacowaną przepustowość $R_{\mathrm{TB}}$ dla wybranych przypadków,
+przy założeniu $F_{\max}=70.41$~MHz.
+
+\begin{table}[!ht]
+\centering
+\caption{Oszacowana przepustowość end-to-end toru, dla $F_{\max}=70.41$~MHz.}
+\label{tab:pdsch_throughput_tb}
+\begin{tabular}{lrrrr}
+\hline
+CASE & $A$ [bit] & $N_{\mathrm{cykli}}$ & $T_{\mathrm{E2E}}$ [$\mu$s] & $R_{\mathrm{TB}}$ [Mb/s] \\
+\hline
+A57     & 57    & 1916  & 27.21  & 2.09 \\
+A3187   & 3187  & 5323  & 75.60  & 42.16 \\
+A4219   & 4219  & 7029  & 99.83  & 42.26 \\
+A12107  & 12107 & 22223 & 315.62 & 38.36 \\
+A18371  & 18371 & 30203 & 428.96 & 42.83 \\
+A26841  & 26841 & 39517 & 561.24 & 47.82 \\
+A59761  & 59761 & 82681 & 1174.28 & 50.89 \\
+\hline
+\end{tabular}
+\end{table}
+
+\paragraph{Uwagi interpretacyjne.}
+Wartości w~tabeli \ref{tab:pdsch_throughput_tb} opisują przepustowość przy aktualnym modelu pracy toru,
+w którym przetwarzanie obejmuje buforowanie i~obliczenia wewnętrzne przed fazą emisji,
+a pełny wynik jest podawany na wyjście po zakończeniu przetwarzania wszystkich CB.
+Dla krótkich ramek (np. A57) narzut sterowania i~faz obliczeń dominuje, co obniża $R_{\mathrm{TB}}$.
+Dla dłuższych ramek \english{goodput} rośnie i~stabilizuje się na poziomie kilkudziesięciu Mb/s
+przy ograniczeniu częstotliwością $F_{\max}$.
+
+
+
+% \label{ch:06}
+% \begin{itemize}
+% \item sposób testowania w~ramach pracy (np. odniesienie do modelu V)
+% \item organizacja eksperymentów
+% \item przypadki testowe zakres testowania (pełny/niepełny)
+% \item wykryte i~usunięte błędy
+% \item opcjonalnie wyniki badań eksperymentalnych
+% \end{itemize}
+
+% \begin{table}
+% \centering
+% \caption{Nagłówek tabeli jest nad tabelą.}
+% \label{id:tab:wyniki}
+% \begin{tabular}{rrrrrrrr}
+% \toprule
+% 	         &                                     \multicolumn{7}{c}{metoda}                                      \\
+% 	         \cmidrule{2-8}
+% 	         &         &         &        \multicolumn{3}{c}{alg. 3}        & \multicolumn{2}{c}{alg. 4, $\gamma = 2$} \\
+% 	         \cmidrule(r){4-6}\cmidrule(r){7-8}
+% 	$\zeta$ &     alg. 1 &   alg. 2 & $\alpha= 1.5$ & $\alpha= 2$ & $\alpha= 3$ &   $\beta = 0.1$  &   $\beta = -0.1$ \\
+% \midrule
+% 	       0 &  8.3250 & 1.45305 &       7.5791 &    14.8517 &    20.0028 & 1.16396 &                       1.1365 \\
+% 	       5 &  0.6111 & 2.27126 &       6.9952 &    13.8560 &    18.6064 & 1.18659 &                       1.1630 \\
+% 	      10 & 11.6126 & 2.69218 &       6.2520 &    12.5202 &    16.8278 & 1.23180 &                       1.2045 \\
+% 	      15 &  0.5665 & 2.95046 &       5.7753 &    11.4588 &    15.4837 & 1.25131 &                       1.2614 \\
+% 	      20 & 15.8728 & 3.07225 &       5.3071 &    10.3935 &    13.8738 & 1.25307 &                       1.2217 \\
+% 	      25 &  0.9791 & 3.19034 &       5.4575 &     9.9533 &    13.0721 & 1.27104 &                       1.2640 \\
+% 	      30 &  2.0228 & 3.27474 &       5.7461 &     9.7164 &    12.2637 & 1.33404 &                       1.3209 \\
+% 	      35 & 13.4210 & 3.36086 &       6.6735 &    10.0442 &    12.0270 & 1.35385 &                       1.3059 \\
+% 	      40 & 13.2226 & 3.36420 &       7.7248 &    10.4495 &    12.0379 & 1.34919 &                       1.2768 \\
+% 	      45 & 12.8445 & 3.47436 &       8.5539 &    10.8552 &    12.2773 & 1.42303 &                       1.4362 \\
+% 	      50 & 12.9245 & 3.58228 &       9.2702 &    11.2183 &    12.3990 & 1.40922 &                       1.3724 \\
+% \bottomrule
+% \end{tabular}
+% \end{table}  
+

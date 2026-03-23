@@ -1,0 +1,146 @@
+// rtl/crc_serial.v
+//
+//	Moduł generujący CRC dla TB w wersji serial
+//
+//
+// - Wejście: strumień bitów danych (in_valid/in_bit), in_last=1 przy ostatnim bicie danych
+// - Wyjście: strumień bitów danych + CRC (p0..p(L-1)); out_last=1 przy ostatnim bicie CRC
+//
+// Domyślny polinom:
+//   L=24 -> CRC24A  = 24'h864CFB  (3GPP TS 38.212; powszechny dla TB > 3824)
+//   L=16 -> CRC16   = 16'h1021
+//
+
+`timescale 1ns/1ps
+
+module crc_serial #(
+  parameter integer L = 24                      // długość CRC (16 albo 24a lub 24b(248))
+)(
+  input  wire clk,
+  input  wire rst,          // synchroniczny reset do 0
+  // Strumień wejściowy
+  input  wire in_valid,
+  input  wire in_bit,
+  input  wire in_last,      // =1 przy ostatnim bicie DANYCH
+  input  wire [((L==248)? 24 : L)-1:0] custom_crc,
+  input  wire  custom_crc_valid,
+  // Strumień wyjściowy
+  output reg  out_valid,
+  output reg  out_bit,
+  output reg  out_last
+);
+
+  // ============================== Stałe / polinom efektywny ==============================
+  // Domyślny polinom wg L (selektor stał się stały w czasie elaboracji):
+  localparam integer  L_LEN = (L==248) ? 24 : L;	// Since 24b is provided as 248 
+  localparam [L_LEN-1:0] POLY = (L==24) ? 24'h864CFB :
+                                    (L==16) ? 16'h1021   :
+                                              (L==248) ? 24'h800063
+																					:{L_LEN{1'b0}};
+
+  // ============================== FSM / rejestry CRC ====================================
+  localparam [1:0] S_IDLE   = 2'd0;
+  localparam [1:0] S_DATA   = 2'd1;
+  localparam [1:0] S_APPEND = 2'd2;
+
+  reg [1:0]  state;
+  reg [L_LEN-1:0] crc;               // bieżąca reszta
+  reg [L_LEN-1:0] crc_latched;       // reszta „zamrożona” przy przejściu do APPEND
+  reg [7:0]   cnt;               // licznik bitów CRC (8 bitów wystarczy do L<=255)
+
+  // Sygnały pomocnicze (obliczane kombinacyjnie przy przetwarzaniu danych)
+  wire feedback = in_valid && (in_bit ^ crc[L_LEN-1]);           // msb-first
+  wire [L_LEN-1:0] crc_shift = {crc[L_LEN-2:0], 1'b0};
+  wire [L_LEN-1:0] next_crc  = feedback ? (crc_shift ^ POLY) : crc_shift;
+  
+  //tb_length = K;
+  
+  
+
+  // ============================== Sekwencja ==============================================
+  always @(posedge clk) begin
+    if (~rst) begin
+      state     <= S_IDLE;
+      crc       <= {L_LEN{1'b0}};
+      crc_latched <= {L_LEN{1'b0}};
+      cnt       <= 8'd0;
+      out_valid <= 1'b0;
+      out_bit   <= 1'b0;
+      out_last  <= 1'b0;
+    end else begin
+      // domyślnie brak wyjścia
+      out_valid <= 1'b0;
+      out_bit   <= 1'b0;
+      out_last  <= 1'b0;
+
+      case (state)
+        // ------------------------------ IDLE ---------------------------------
+        S_IDLE: begin
+                    // start każdej ramki od zera
+			 if (custom_crc_valid) begin
+					crc <= custom_crc;
+			 end else begin
+					crc <= {L_LEN{1'b0}};
+			 end
+          if (in_valid) begin
+            // podaj pierwszy bit na wyjście
+				if (custom_crc_valid) begin
+					crc <= custom_crc;
+				end
+            out_valid <= 1'b1;
+            out_bit   <= in_bit;
+			
+
+            // policz CRC z tym bitem
+            crc <= next_crc;
+
+            if (in_last) begin
+              // ostatni bit danych -> przechodzimy do APPEND i zamrażamy CRC
+              state       <= S_APPEND;
+              crc_latched <= next_crc;
+              cnt         <= 8'd0;
+            end else begin
+              state <= S_DATA;
+            end
+          end
+        end
+
+        // ------------------------------ DATA ---------------------------------
+        S_DATA: begin
+          if (in_valid) begin
+            out_valid <= 1'b1;
+            out_bit   <= in_bit;
+
+            // aktualizacja CRC o ten bit
+            crc <= next_crc;
+
+            if (in_last) begin
+              state       <= S_APPEND;
+              crc_latched <= next_crc;   // zamroź resztę po ostatnim bicie danych
+              cnt         <= 8'd0;
+            end
+          end
+        end
+
+        // ------------------------------ APPEND (emituj p0..p(L-1)) ----------
+        S_APPEND: begin
+          out_valid <= 1'b1;
+
+          // Emituj p0, p1, ... (MSB jako p0). 
+          out_bit   <= crc_latched[L_LEN-1-cnt];
+
+          if (cnt == L_LEN-1) begin
+            out_last <= 1'b1;     // ostatni bit całej ramki (po CRC)
+            state    <= S_IDLE;   // gotowi na nową ramkę
+          end
+          cnt <= cnt + 8'd1;
+        end
+
+        default: begin
+          state <= S_IDLE;
+        end
+      endcase
+    end
+  end
+
+endmodule

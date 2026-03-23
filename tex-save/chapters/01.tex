@@ -1,0 +1,48 @@
+\chapter{Wstęp}
+\label{ch:wstep}
+
+\section{Wprowadzenie do zagadnienia}
+\label{sec:wstep_wprowadzenie}
+System 5G NR (\english{New Radio}) jest współczesnym standardem radiokomunikacyjnym, w którym uzyskanie wysokich przepływności oraz odporności na zakłócenia wymaga zastosowania zaawansowanych mechanizmów przetwarzania sygnału w warstwie fizycznej. Jednym z kluczowych kanałów transmisji danych w łączu w dół jest PDSCH (Physical Downlink Shared Channel), wykorzystywany do przenoszenia danych użytkownika do terminala. Zanim informacja zostanie przekształcona do postaci próbek sygnału radiowego, podlega szeregowi etapów obróbki bitowej, m.in. dodaniu sum kontrolnych oraz kodowaniu kanałowemu.
+
+Zagadnieniem poruszanym w pracy jest projekt oraz weryfikacja wybranych bloków toru nadawczego PDSCH, które realizują krytyczne funkcje zapewniające możliwość detekcji oraz korekcji błędów. W pracy skupiono się na modelowaniu sprzętowym tych funkcji w postaci modułów opisanych w języku Verilog oraz na ocenie poprawności działania przeprowadzonej na podstawie symulacji i wektorów referencyjnych.
+
+\section{Osadzenie problemu w dziedzinie}
+\label{sec:wstep_osadzenie}
+Projektowanie układów cyfrowych dla systemów telekomunikacyjnych należy do obszaru łączącego teorię transmisji i kodowania kanałowego z praktyką implementacji sprzętowej (FPGA(Field-Programmable Gate Array)/ASIC(Application-Specific Integrated Circuit)). Standard 5G NR, definiowany przez 3GPP (3rd Generation Partnership Project), opisuje nie tylko strukturę ramek i zasady dostępu do medium radiowego, ale również szczegółowe algorytmy przetwarzania bitów w torze nadawczo-odbiorczym.
+
+W praktycznych implementacjach nadajników i modemów istotne są: deterministyczne opóźnienia, przepustowość strumieni danych oraz możliwość równoległego przetwarzania. Z tego powodu wiele funkcji warstwy fizycznej realizuje się sprzętowo. Modelowanie bloków PDSCH w Verilogu pozwala przełożyć wymagania algorytmiczne na architekturę możliwą do syntezy oraz stanowi krok w kierunku implementacji na układach programowalnych lub docelowych układach scalonych.
+
+\section{Cel pracy}
+\label{sec:wstep_cel}
+Celem pracy jest opracowanie sprzętowych modeli wybranych elementów toru nadawczego PDSCH w systemie 5G NR, zgodnie z założeniami specyfikacji 3GPP oraz przeprowadzenie ich weryfikacji funkcjonalnej w środowisku symulacyjnym. W szczególności celem jest:
+\begin{itemize}
+    \item implementacja modułów generacji CRC (Cyclic Redundancy Check) dla bloków danych,
+    \item implementacja kodowania kanałowego LDPC (Low-Density Parity-Check) dla 5G NR,
+    \item przygotowanie i uruchomienie procesu weryfikacji z użyciem wektorów testowych (\english{golden}) generowanych w środowisku MATLAB oraz \english{testbench'y} w SystemVerilog.
+\end{itemize}
+Dodatkowym celem jest ocena, na ile zaproponowana architektura modułowa umożliwia dalszą rozbudowę (np. o brakujące etapy przetwarzania).
+
+\section{Zakres pracy}
+\label{sec:wstep_zakres}
+Zakres pracy obejmuje modelowanie po stronie nadajnika następujących funkcjonalności:
+\begin{itemize}
+    \item generacja CRC dla danych transportowych i/lub bloków kodowych (w zależności od wariantu przetwarzania),
+    \item przygotowanie danych do kodowania,
+    \item kodowanie LDPC w architekturze przystosowanej do przetwarzania strumieniowego,
+    \item zalążkowa funkcjonalność związana z dostosowaniem liczby bitów po kodowaniu LDPC do wymaganej długości (\english{rate matching}): usuwanie bitów wypełnienia oraz pomijanie na wyjściu dwóch pierwszych bloków informacji zgodnie z przyjętymi założeniami przetwarzania po kodowaniu,
+    \item weryfikacja funkcjonalna w symulacji na podstawie wektorów referencyjnych i wyników generowanych przez moduły RTL (Register Transfer Level).
+\end{itemize}
+
+W pierwotnych założeniach projektu przewidziano również opcjonalną implementację mieszania (\english{scrambling}). Ostatecznie blok ten nie został wykonany i w~pracy ujęto ten fakt wraz z omówieniem roli \english{scrambling'u} oraz wskazaniem go jako elementu do realizacji w~ramach dalszych prac rozwojowych.
+
+\section{Charakterystyka rozdziałów}
+\label{sec:wstep_rozdzialy}
+W kolejnych rozdziałach pracy przedstawiono następujące zagadnienia:
+\begin{itemize}
+    \item wprowadzenie teoretyczne do przetwarzania danych w torze PDSCH w 5G NR, ze~wskazaniem miejsca CRC oraz LDPC w łańcuchu nadawczym,
+    \item założenia projektowe i specyfikację interfejsów strumieniowych zastosowanych w implementacji (format danych, sygnały sterujące, warunki brzegowe),
+    \item opis architektury oraz implementacji modułów w języku Verilog, w tym podział na~bloki funkcjonalne i sposób ich integracji,
+    \item metodykę weryfikacji: generację wektorów testowych w MATLAB, organizację \english{testbench'y} oraz kryteria porównania wyników,
+    \item podsumowanie rezultatów, wnioski oraz propozycje dalszej rozbudowy projektu (m.in. o \english{scrambling} i pełniejsze mechanizmy dopasowania do transmisji).
+\end{itemize}

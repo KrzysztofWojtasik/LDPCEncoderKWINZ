@@ -1,0 +1,365 @@
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\thispagestyle {empty}
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\contentsline {chapter}{\numberline {1}Wstęp}{1}{chapter.1}%
+\contentsline {section}{\numberline {1.1}Wprowadzenie do zagadnienia}{1}{section.1.1}%
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\contentsline {section}{\numberline {1.2}Osadzenie problemu w dziedzinie}{1}{section.1.2}%
+\contentsline {section}{\numberline {1.3}Cel pracy}{2}{section.1.3}%
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\contentsline {section}{\numberline {1.4}Zakres pracy}{2}{section.1.4}%
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\contentsline {section}{\numberline {1.5}Charakterystyka rozdziałów}{3}{section.1.5}%
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\contentsline {chapter}{\numberline {2}Analiza tematu}{5}{chapter.2}%
+\contentsline {section}{\numberline {2.1}Miejsce kodowania kanałowego w torze PDSCH}{5}{section.2.1}%
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\contentsline {section}{\numberline {2.2}Blok transportowy i sumy kontrolne CRC}{6}{section.2.2}%
+\contentsline {section}{\numberline {2.3}Dobór parametrów kodowania LDPC}{7}{section.2.3}%
+\contentsline {subsection}{\numberline {2.3.1}Założenia wejściowe i pojęcie docelowego współczynnika kodowania}{7}{subsection.2.3.1}%
+\contentsline {subsection}{\numberline {2.3.2}Wybór grafu bazowego}{7}{subsection.2.3.2}%
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\contentsline {subsection}{\numberline {2.3.3}Lifting i dobór wartości $Z_c$}{9}{subsection.2.3.3}%
+\contentsline {subsection}{\numberline {2.3.4}Zależność doboru parametrów LDPC od segmentacji}{10}{subsection.2.3.4}%
+\contentsline {section}{\numberline {2.4}Segmentacja}{10}{section.2.4}%
+\contentsline {subsection}{\numberline {2.4.1}Maksymalna długość bloku kodowego}{10}{subsection.2.4.1}%
+\contentsline {subsection}{\numberline {2.4.2}Wyznaczenie liczby bloków kodowych i narzutu CRC dla CB}{10}{subsection.2.4.2}%
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\contentsline {subsection}{\numberline {2.4.3}Podział bitów na CB oraz bity wypełniające ({\selectlanguage {british}\emph {filler bits}})}{11}{subsection.2.4.3}%
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\contentsline {section}{\numberline {2.5}Proces kodowania LDPC}{11}{section.2.5}%
+\contentsline {subsection}{\numberline {2.5.1}Warunek parzystości i postać słowa kodowego}{12}{subsection.2.5.1}%
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\contentsline {subsection}{\numberline {2.5.2}Podział macierzy \textbf {H} i idea wyznaczania parzystości}{12}{subsection.2.5.2}%
+\contentsline {subsection}{\numberline {2.5.3}Operacje elementarne: przesunięcie cykliczne i akumulacja XOR}{13}{subsection.2.5.3}%
+\contentsline {subsection}{\numberline {2.5.4}Wyznaczanie pierwszych bloków parzystości}{13}{subsection.2.5.4}%
+\contentsline {subsection}{\numberline {2.5.5}Wyznaczanie pozostałych bloków parzystości}{13}{subsection.2.5.5}%
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\contentsline {section}{\numberline {2.6}{\selectlanguage {british}\emph {Rate matching}} i przygotowanie strumienia w zakresie pracy}{14}{section.2.6}%
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\contentsline {chapter}{\numberline {3}Wymagania i narzędzia}{17}{chapter.3}%
+\contentsline {section}{\numberline {3.1}Założenia projektowe}{17}{section.3.1}%
+\contentsline {subsection}{\numberline {3.1.1}Sposób przetwarzania danych}{17}{subsection.3.1.1}%
+\contentsline {subsection}{\numberline {3.1.2}Model pracy}{17}{subsection.3.1.2}%
+\contentsline {subsection}{\numberline {3.1.3}Sterowanie przepływem danych}{17}{subsection.3.1.3}%
+\contentsline {subsection}{\numberline {3.1.4}Sposób podawania danych wejściowych}{18}{subsection.3.1.4}%
+\contentsline {subsection}{\numberline {3.1.5}Elastyczność kodowania LDPC i obsługa różnych TB}{18}{subsection.3.1.5}%
+\contentsline {subsection}{\numberline {3.1.6}Wymagania}{19}{subsection.3.1.6}%
+\contentsline {section}{\numberline {3.2}Interfejsy i format danych}{19}{section.3.2}%
+\contentsline {subsection}{\numberline {3.2.1}Interfejs wejściowy}{19}{subsection.3.2.1}%
+\contentsline {subsection}{\numberline {3.2.2}Interfejs wyjściowy}{20}{subsection.3.2.2}%
+\contentsline {section}{\numberline {3.3}Środowisko projektowe i narzędzia}{20}{section.3.3}%
+\contentsline {subsection}{\numberline {3.3.1}Quartus Prime Lite Edition}{21}{subsection.3.3.1}%
+\contentsline {subsection}{\numberline {3.3.2}Questa Intel Starter FPGA Edition}{21}{subsection.3.3.2}%
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\contentsline {subsection}{\numberline {3.3.3}MATLAB}{21}{subsection.3.3.3}%
+\contentsline {chapter}{\numberline {4}Koncepcja i realizacja projektu}{23}{chapter.4}%
+\contentsline {section}{\numberline {4.1}Założenia architektoniczne toru}{23}{section.4.1}%
+\contentsline {subsection}{\numberline {4.1.1}Stała magistrala 64-bit jako oś projektu}{23}{subsection.4.1.1}%
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\contentsline {subsection}{\numberline {4.1.2}Uproszczony model sterowania strumieniem}{23}{subsection.4.1.2}%
+\contentsline {subsection}{\numberline {4.1.3}Przetwarzanie blokowe i reset jako granica transakcji}{24}{subsection.4.1.3}%
+\contentsline {subsection}{\numberline {4.1.4}Elastyczność kodowania LDPC}{24}{subsection.4.1.4}%
+\contentsline {subsection}{\numberline {4.1.5}Weryfikacja poprzez symulację i syntezowalność}{24}{subsection.4.1.5}%
+\contentsline {section}{\numberline {4.2}Struktura funkcjonalna i przepływ danych}{24}{section.4.2}%
+\contentsline {subsection}{\numberline {4.2.1}Ogólny podział toru na etapy}{25}{subsection.4.2.1}%
+\contentsline {subsection}{\numberline {4.2.2}Przepływ danych wejściowych i moment rozpoczęcia przetwarzania}{25}{subsection.4.2.2}%
+\contentsline {subsection}{\numberline {4.2.3}Przepływ danych wewnątrz toru}{25}{subsection.4.2.3}%
+\contentsline {subsection}{\numberline {4.2.4}Strumień wyjściowy i zakończenie przetwarzania}{26}{subsection.4.2.4}%
+\contentsline {subsection}{\numberline {4.2.5}Warianty długości TB i konsekwencje dla przepływu danych}{26}{subsection.4.2.5}%
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\contentsline {section}{\numberline {4.3}Model strumieniowania i buforowania danych}{26}{section.4.3}%
+\contentsline {subsection}{\numberline {4.3.1}Konsekwencje braku sygnału \texttt {ready}}{26}{subsection.4.3.1}%
+\contentsline {subsection}{\numberline {4.3.2}Buforowanie jako element architektury}{27}{subsection.4.3.2}%
+\contentsline {subsection}{\numberline {4.3.3}Obsługa przerw w strumieniu wejściowym}{27}{subsection.4.3.3}%
+\contentsline {subsection}{\numberline {4.3.4}Deterministyczność przepływu}{28}{subsection.4.3.4}%
+\contentsline {section}{\numberline {4.4}Cykliczny kod nadmiarowy (CRC)}{28}{section.4.4}%
+\contentsline {subsection}{\numberline {4.4.1}Wariant bazowy: moduł szeregowy \texttt {crc\_serial}}{30}{subsection.4.4.1}%
+\contentsline {subsection}{\numberline {4.4.2}Rozszerzenie modułu szeregowego o inicjalizację stanu CRC}{30}{subsection.4.4.2}%
+\contentsline {subsection}{\numberline {4.4.3}Moduł \texttt {crc\_update}: równoległa aktualizacja CRC o 64 bity}{30}{subsection.4.4.3}%
+\contentsline {subsection}{\numberline {4.4.4}Generowanie równań XOR na podstawie macierzy H1 i H2}{31}{subsection.4.4.4}%
+\contentsline {subsection}{\numberline {4.4.5}Moduł \texttt {crc\_tb\_parallel}: integracja trybu równoległego i szeregowego}{32}{subsection.4.4.5}%
+\contentsline {subsection}{\numberline {4.4.6}Dobór długości CRC na podstawie długości TB}{32}{subsection.4.4.6}%
+\contentsline {subsection}{\numberline {4.4.7}Wyznaczenie końcówki TB (``ogona'') na podstawie \texttt {tb\_len}}{32}{subsection.4.4.7}%
+\contentsline {subsection}{\numberline {4.4.8}Tryb S\_APPEND: ostatnie słowo pełne}{33}{subsection.4.4.8}%
+\contentsline {subsection}{\numberline {4.4.9}Tryb S\_SERIAL: ostatnie słowo niepełne}{33}{subsection.4.4.9}%
+\contentsline {subsection}{\numberline {4.4.10}Podsumowanie roli CRC w torze}{33}{subsection.4.4.10}%
+\contentsline {section}{\numberline {4.5}Przygotowanie danych do kodowania LDPC}{34}{section.4.5}%
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\contentsline {subsection}{\numberline {4.5.1}Buforowanie TB i rozdzielenie faz pracy}{35}{subsection.4.5.1}%
+\contentsline {subsection}{\numberline {4.5.2}Wyznaczenie parametrów CRC i wielkości pośrednich}{35}{subsection.4.5.2}%
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\contentsline {subsection}{\numberline {4.5.3}Segmentacja TB na CB}{35}{subsection.4.5.3}%
+\contentsline {subsection}{\numberline {4.5.4}Dobór $Z_c$, wyznaczenie $k$ oraz liczby $filler$ $bits$}{36}{subsection.4.5.4}%
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\contentsline {subsection}{\numberline {4.5.5}Formowanie strumienia wyjściowego CB na szynie 64-bit}{37}{subsection.4.5.5}%
+\contentsline {subsection}{\numberline {4.5.6}Dopisanie CRC24B dla CB}{38}{subsection.4.5.6}%
+\contentsline {subsection}{\numberline {4.5.7}Metadane konfiguracyjne przekazywane do kodera LDPC}{38}{subsection.4.5.7}%
+\contentsline {section}{\numberline {4.6}Implementacja kodera LDPC}{38}{section.4.6}%
+\contentsline {subsection}{\numberline {4.6.1}Interfejs wejściowy i buforowanie danych}{38}{subsection.4.6.1}%
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\contentsline {subsection}{\numberline {4.6.2}ROM opisujący graf bazowy i dobór parametrów z tablic}{39}{subsection.4.6.2}%
+\contentsline {subsection}{\numberline {4.6.3}Struktura obliczeń: okno $Z_c$, rotacja i akumulacja XOR}{40}{subsection.4.6.3}%
+\contentsline {subsection}{\numberline {4.6.4}Realizacja przesunięcia cyklicznego dla bloku $Z_c$}{41}{subsection.4.6.4}%
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\contentsline {subsection}{\numberline {4.6.5}Wyznaczanie bloków parzystości}{43}{subsection.4.6.5}%
+\contentsline {subsection}{\numberline {4.6.6}Emisja danych: konkatencja strumienia CB}{44}{subsection.4.6.6}%
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\contentsline {subsection}{\numberline {4.6.7}Zalążki {\selectlanguage {british}\emph {rate matching'u}}}{45}{subsection.4.6.7}%
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\contentsline {section}{\numberline {4.7}Integracja top-level i sterowanie pracą toru}{46}{section.4.7}%
+\contentsline {paragraph}{Łączenie bloków i przepływ danych.}{46}{section*.16}%
+\contentsline {paragraph}{Sterowanie granicami TB i CB.}{47}{section*.17}%
+\contentsline {paragraph}{Reset i cykl pracy toru.}{47}{section*.18}%
+\contentsline {chapter}{\numberline {5}Weryfikacja i walidacja}{49}{chapter.5}%
+\contentsline {section}{\numberline {5.1}Cele i kryteria poprawności}{49}{section.5.1}%
+\contentsline {subsection}{\numberline {5.1.1}Cele weryfikacji}{49}{subsection.5.1.1}%
+\contentsline {subsection}{\numberline {5.1.2}Kryteria poprawności}{49}{subsection.5.1.2}%
+\contentsline {section}{\numberline {5.2}Środowisko weryfikacji}{50}{section.5.2}%
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\contentsline {subsection}{\numberline {5.2.1}Symulacja HDL (Questa)}{50}{subsection.5.2.1}%
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\contentsline {subsection}{\numberline {5.2.2}Moduły testowe ({\selectlanguage {british}\emph {testbench}}) i automatyzacja przebiegu testów}{51}{subsection.5.2.2}%
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\contentsline {subsection}{\numberline {5.2.3}Wektory referencyjne i narzędzia MATLAB}{51}{subsection.5.2.3}%
+\contentsline {section}{\numberline {5.3}Organizacja danych testowych i wektorów referencyjnych}{51}{section.5.3}%
+\contentsline {subsection}{\numberline {5.3.1}Struktura katalogów}{52}{subsection.5.3.1}%
+\contentsline {subsection}{\numberline {5.3.2}Nazewnictwo plików i typy danych}{52}{subsection.5.3.2}%
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\contentsline {subsection}{\numberline {5.3.3}Format plików bitowych}{53}{subsection.5.3.3}%
+\contentsline {subsection}{\numberline {5.3.4}Format plików metadanych}{53}{subsection.5.3.4}%
+\contentsline {section}{\numberline {5.4}Testy modułowe}{53}{section.5.4}%
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\contentsline {subsection}{\numberline {5.4.1}Dane testowe, organizacja przypadków i format plików}{54}{subsection.5.4.1}%
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\contentsline {subsection}{\numberline {5.4.2}Wspólny szkielet {\selectlanguage {british}\emph {testbench'y}} i zasady porównywania}{55}{subsection.5.4.2}%
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\contentsline {subsection}{\numberline {5.4.3}Test modułu \texttt {crc\_serial}}{55}{subsection.5.4.3}%
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\contentsline {subsection}{\numberline {5.4.4}Test modułów \texttt {crc\_tb\_parallel} oraz \texttt {crc\_cb\_parallel}}{55}{subsection.5.4.4}%
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\contentsline {subsection}{\numberline {5.4.5}Test modułu \texttt {LDPC\_prep}}{56}{subsection.5.4.5}%
+\contentsline {subsection}{\numberline {5.4.6}Test modułu \texttt {LDPC\_encode}}{56}{subsection.5.4.6}%
+\contentsline {subsection}{\numberline {5.4.7}Test integracyjny modułu top-level \texttt {PDSCHTx}}{56}{subsection.5.4.7}%
+\contentsline {section}{\numberline {5.5}Analiza wyników testów i symulacji}{57}{section.5.5}%
+\contentsline {subsection}{\numberline {5.5.1}Definicje zdarzeń i metryk czasowych}{57}{subsection.5.5.1}%
+\contentsline {subsection}{\numberline {5.5.2}Wybrane przypadki testowe i ich parametry}{57}{subsection.5.5.2}%
+\contentsline {subsection}{\numberline {5.5.3}Latencja modułu \texttt {crc\_serial}}{57}{subsection.5.5.3}%
+\contentsline {subsection}{\numberline {5.5.4}Latencja modułu \texttt {crc\_tb\_parallel}}{58}{subsection.5.5.4}%
+\contentsline {subsection}{\numberline {5.5.5}Latencja modułu \texttt {LDPC\_prep}}{58}{subsection.5.5.5}%
+\contentsline {subsection}{\numberline {5.5.6}Latencja modułu \texttt {LDPC\_encode}}{59}{subsection.5.5.6}%
+\contentsline {subsection}{\numberline {5.5.7}Latencja toru top-level \texttt {PDSCHTx}}{59}{subsection.5.5.7}%
+\contentsline {subsection}{\numberline {5.5.8}Wnioski z analizy latencji}{59}{subsection.5.5.8}%
+\contentsline {subsection}{\numberline {5.5.9}Narzut magistrali 64-bit}{60}{subsection.5.5.9}%
+\contentsline {section}{\numberline {5.6}Wyniki syntezy i analiza implementacyjna w FPGA}{61}{section.5.6}%
+\contentsline {subsection}{\numberline {5.6.1}Konfiguracja narzędzi i założenia kompilacji}{61}{subsection.5.6.1}%
+\contentsline {subsection}{\numberline {5.6.2}Wykorzystanie zasobów układu}{61}{subsection.5.6.2}%
+\contentsline {subsection}{\numberline {5.6.3}Analiza czasowa i maksymalna częstotliwość pracy}{62}{subsection.5.6.3}%
+\contentsline {subsection}{\numberline {5.6.4}Wnioski z kompilacji}{62}{subsection.5.6.4}%
+\contentsline {subsection}{\numberline {5.6.5}Szacowana przepustowość toru na podstawie $F_{\max }$ i latencji symulacyjnej}{63}{subsection.5.6.5}%
+\contentsline {paragraph}{Metryka end-to-end (goodput TB).}{63}{section*.29}%
+\contentsline {paragraph}{Uwagi interpretacyjne.}{63}{section*.31}%
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\contentsline {chapter}{\numberline {6}Podsumowanie i wnioski}{65}{chapter.6}%
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\contentsline {chapter}{Bibliografia}{69}{section*.37}%
+\contentsline {chapter}{Spis skrótów i symboli}{73}{appendix*.39}%
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\babel@toc {british}{}\relax 
+\babel@toc {polish}{}\relax 
+\contentsline {chapter}{Źródła}{77}{appendix*.40}%
+\contentsline {chapter}{Lista dodatkowych plików, uzupełniających tekst pracy}{79}{appendix*.41}%
+\contentsline {chapter}{Spis rysunków}{81}{appendix*.42}%
+\contentsline {chapter}{Spis tabel}{83}{appendix*.43}%

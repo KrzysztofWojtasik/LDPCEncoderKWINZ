@@ -1,0 +1,357 @@
+`timescale 1ns/1ps
+
+// ============================================================================
+// test_crc_cb
+// Testbench weryfikujący moduł crc_cb_parallel (CRC dopisywane do CB w strumieniu
+// równoległym 64-bit).
+//
+// Pliki (MATLAB) w jednym katalogu VEC_DIR_MAT:
+//  - <CASE>_in_bits.txt   : bity wejściowe 0/1 (czytana jest TYLKO pierwsza linia)
+//  - <CASE>_out_bits.txt  : golden (payload + CRC), bity 0/1 (pierwsza linia)
+//  - <CASE>_meta.txt      : parametry testu, linie typu:
+//                           A=<int>   (długość CB / cb_len)
+//                           L=<int>   (liczba bitów CRC do raportu / oczekiwania)
+//
+// Wyniki DUT do VEC_DIR_RESULT:
+//  - <CASE>_dut_stream_out.txt : pełny strumień DUT (bit po bicie)
+//  - <CASE>_dut_crc_out.txt    : wycięte bity CRC (od indeksu data_bits do data_bits+L-1)
+//
+// Zasada pracy:
+//  - Driver pakuje dane w słowa 64-bit (MSB-first) i podaje do DUT z in_valid.
+//  - Monitor przy out_valid rozbija out_chunk na bity (MSB-first), zapisuje do plików
+//    i porównuje z goldenem bit-po-bicie.
+//  - Błędy są zliczane i raportowane, ale symulacja nie jest przerywana przy mismatchach.
+//  - Koniec testu: out_last (koniec CB) lub timeout.
+// ============================================================================
+
+module test_crc_cb;
+
+  // === KONFIG ===
+  localparam string VEC_DIR_MAT    = "../vectors/CB_crc/Output_Matlab";
+  localparam string VEC_DIR_RESULT = "../vectors/CB_crc/Output_DUT";
+  localparam string CASE           = "A57";
+  localparam int    W              = 64;
+
+  // Domyślne wartości, jeśli meta nie istnieje / nie zawiera pól
+  localparam int    DEFAULT_A = -1;
+  localparam int    DEFAULT_L = -1;
+
+  localparam int    TIMEOUT_CYCLES = 2_000_000;
+  localparam int    MAX_ERR_PRINT_DEFAULT = 200;
+
+  // === META (runtime) ===
+  int META_A;
+  int META_L;
+
+    // === SYGNAŁY DO DUT ===
+  logic 					  clk;
+  logic 					  rst;
+  logic 					  in_valid, in_last;
+  logic 					  out_valid, out_last;
+  logic 		[W-1:0]    in_chunk, out_chunk;
+  logic 		[15:0] 	  cb_len, padding,cb_len_out; 
+
+  // === ZMIENNE POMOCNICZE ===
+  string in_file;
+  string golden_file;
+  string meta_file;
+  string out_stream_path;
+  string out_crc_path;
+
+  bit data_q[$];
+  bit golden_q[$];
+
+  int fd_stream;
+  int fd_crc;
+
+  // === LICZNIKI / STATYSTYKI ===
+  int err_mismatch;         // różne bity w zakresie goldena
+  int err_nonzero_tail;     // niezerowe bity poza goldenem (ogon/padding powinien być 0)
+  int err_missing_bits;     // DUT zakończył się zanim wyprodukował golden.size() bitów
+  int warn_golden_len;      // golden.size() != (data_bits + META_L) (ostrzeżenie informacyjne)
+
+  int printed_err;          // limiter spamowania logów
+  int max_err_print;
+
+  // Zegar
+  initial clk = 0;
+  always #5 clk = ~clk;
+
+  // DUT
+  crc_cb_parallel dut (
+    .clk, .rst, .cb_len,
+    .in_valid, .in_chunk, .in_last,
+    .out_valid, .out_chunk, .out_last, .padding
+  );
+
+  // Funkcja: czy znak to '0'/'1'
+  function automatic bit is01(byte c);
+    return (c=="0" || c=="1");
+  endfunction
+
+  // Wczytaj pierwszą linię pliku do kolejki bitów (0/1)
+  task automatic read_bits_from_file(input string path, output bit q[$], output bit ok);
+    int fd; string line;
+    q = {}; ok = 1'b1;
+
+    fd = $fopen(path, "r");
+    if (fd == 0) begin
+      $display("ERROR: Nie moge otworzyc: %s", path);
+      ok = 1'b0;
+      return;
+    end
+
+    if ($fgets(line, fd) == 0) begin
+      $display("ERROR: Plik pusty: %s", path);
+      ok = 1'b0;
+      void'($fclose(fd));
+      return;
+    end
+    void'($fclose(fd));
+
+    for (int i = 0; i < line.len(); i++) begin
+      byte c = line[i];
+      if (is01(c)) q.push_back( (c=="1") );
+    end
+  endtask
+
+  // META: czytaj A=... oraz L=...
+  task automatic read_meta_AL(input string path, output int A, output int L, output bit ok);
+    int fd; string line;
+    int v;
+
+    ok = 1'b1;
+    A  = DEFAULT_A;
+    L  = DEFAULT_L;
+
+    fd = $fopen(path, "r");
+    if (fd == 0) begin
+      $display("UWAGA: Nie moge otworzyc META: %s (domyslne A=%0d L=%0d)", path, A, L);
+      ok = 1'b0;
+      return;
+    end
+
+    while ($fgets(line, fd)) begin
+      if ($sscanf(line, "A=%d", v) == 1) A = v;
+      else if ($sscanf(line, "L=%d", v) == 1) L = v;
+    end
+    void'($fclose(fd));
+  endtask
+
+  // === STYMULACJA + CHECK ===
+  initial begin
+    bit ok_in, ok_gold, ok_meta;
+    int data_bits;
+    int expected_bits;
+    int compared_bits;
+    int out_bits_total;
+
+    // init
+    rst = 0;
+    in_valid = 0; in_chunk = '0; in_last = 0;
+    cb_len = '0;
+
+    err_mismatch     = 0;
+    err_nonzero_tail = 0;
+    err_missing_bits = 0;
+    warn_golden_len  = 0;
+
+    printed_err = 0;
+    max_err_print = MAX_ERR_PRINT_DEFAULT;
+    void'($value$plusargs("MAX_ERR_PRINT=%d", max_err_print));
+
+    repeat (5) @(posedge clk);
+    rst = 1;
+    @(posedge clk);
+
+    // Ścieżki plików
+    in_file         = {VEC_DIR_MAT,    "/", CASE, "_in_bits",  ".txt"};
+    golden_file     = {VEC_DIR_MAT,    "/", CASE, "_out_bits", ".txt"};
+    meta_file       = {VEC_DIR_MAT,    "/", CASE, "_meta",     ".txt"};
+    out_stream_path = {VEC_DIR_RESULT, "/", CASE, "_dut_stream_out", ".txt"};
+    out_crc_path    = {VEC_DIR_RESULT, "/", CASE, "_dut_crc_out",    ".txt"};
+
+    // META
+    read_meta_AL(meta_file, META_A, META_L, ok_meta);
+    if (META_A <= 0) begin
+      $display("UWAGA: META_A<=0, uzywam DEFAULT_A=%0d", DEFAULT_A);
+      META_A = DEFAULT_A;
+    end
+    if (META_L <= 0) begin
+      $display("UWAGA: META_L<=0, uzywam DEFAULT_L=%0d", DEFAULT_L);
+      META_L = DEFAULT_L;
+    end
+
+    // Wczytaj dane i golden
+    read_bits_from_file(in_file, data_q, ok_in);
+    read_bits_from_file(golden_file, golden_q, ok_gold);
+
+    if (!ok_in || !ok_gold) begin
+      $display("FAIL: brak wymaganych plikow wejsciowych (in/golden).");
+      $display("  in_file=%s", in_file);
+      $display("  golden=%s", golden_file);
+      $finish;
+    end
+
+    if (data_q.size() == 0) begin
+      $display("FAIL: Plik wejsciowy pusty (0 bitow): %s", in_file);
+      $finish;
+    end
+    if (golden_q.size() == 0) begin
+      $display("FAIL: Plik golden pusty (0 bitow): %s", golden_file);
+      $finish;
+    end
+
+    data_bits     = data_q.size();
+    expected_bits = golden_q.size();
+
+    // Spójność oczekiwań: golden powinien pokrywać payload + L bitów CRC
+    if (expected_bits != (data_bits + META_L)) begin
+      warn_golden_len = 1;
+      $display("UWAGA: golden ma %0d bitow, oczekiwano %0d (dane %0d + CRC %0d).",
+               expected_bits, data_bits + META_L, data_bits, META_L);
+    end
+
+    $display("Test: %s | META: A=%0d L=%0d | data_bits=%0d | golden_bits=%0d",
+             CASE, META_A, META_L, data_bits, expected_bits);
+
+    // Otwórz pliki wynikowe
+    fd_stream = $fopen(out_stream_path, "w");
+    if (fd_stream == 0) begin
+      $display("FAIL: Nie moge otworzyc do zapisu: %s", out_stream_path);
+      $finish;
+    end
+    fd_crc = $fopen(out_crc_path, "w");
+    if (fd_crc == 0) begin
+      $display("FAIL: Nie moge otworzyc do zapisu: %s", out_crc_path);
+      void'($fclose(fd_stream));
+      $finish;
+    end
+
+    fork
+      // DRIVER
+      begin : drv
+        automatic int di = 0;
+        automatic logic [W-1:0] word;
+
+        while (di < data_q.size()) begin
+          for (int b = 0; b < W; b++) begin
+            word[W-1-b] = data_q[di + b];
+          end
+
+          @(posedge clk);
+          in_valid  <= 1;
+          cb_len <= META_A[15:0];
+          in_chunk  <= word;
+          in_last   <= (di + W >= data_q.size());
+          di += W;
+        end
+
+        @(posedge clk);
+        in_valid <= 0;
+        in_last  <= 0;
+      end
+
+      // CHECKER / MONITOR
+      begin : chk_blk
+        automatic int gi = 0;       // indeks bitu w strumieniu wyjściowym
+        automatic bit ob;
+
+        forever begin
+          @(posedge clk);
+
+          if (out_valid) begin
+            for (int b = 0; b < W; b++) begin
+              ob = out_chunk[W-1-b];
+
+              // zapis pełnego strumienia DUT
+              $fwrite(fd_stream, "%0d", ob);
+
+              // zapis CRC (wycięcie wg data_bits..data_bits+META_L-1)
+              if (gi >= data_bits && gi < (data_bits + META_L)) begin
+                $fwrite(fd_crc, "%0d", ob);
+              end
+
+              // porównanie z golden
+              if (gi < expected_bits) begin
+                if (ob !== golden_q[gi]) begin
+                  err_mismatch++;
+                  if (printed_err < max_err_print) begin
+                    $display("MISMATCH @%0t: idx=%0d DUT=%0b GOLD=%0b", $time, gi, ob, golden_q[gi]);
+                    printed_err++;
+                  end
+                end
+              end else begin
+                // poza goldenem akceptujemy tylko zera (ogon/padding)
+                if (ob !== 1'b0) begin
+                  err_nonzero_tail++;
+                  if (printed_err < max_err_print) begin
+                    $display("TAIL_NONZERO @%0t: idx=%0d DUT=%0b (golden konczy sie na %0d)",
+                             $time, gi, ob, expected_bits-1);
+                    printed_err++;
+                  end
+                end
+              end
+
+              gi++;
+            end
+
+            if (out_last) begin
+              out_bits_total = gi;
+
+              void'($fclose(fd_stream));
+              void'($fclose(fd_crc));
+
+              $display("Zapisano: %s", out_stream_path);
+              $display("Zapisano: %s", out_crc_path);
+
+              // DUT zakończył się zanim osiągnął długość goldena -> brakujące bity
+              if (out_bits_total < expected_bits) begin
+                err_missing_bits = expected_bits - out_bits_total;
+              end
+
+              compared_bits = (out_bits_total < expected_bits) ? out_bits_total : expected_bits;
+
+              // PODSUMOWANIE
+              if ((err_mismatch + err_nonzero_tail + err_missing_bits) == 0) begin
+                $display("PASS: %s", CASE);
+                $display("  in_bits      = %0d", data_bits);
+                $display("  out_bits     = %0d", out_bits_total);
+                $display("  compared     = %0d", compared_bits);
+                $display("  expected     = %0d (golden)", expected_bits);
+                $display("  expected(L)  = data_bits(%0d) + L(%0d) = %0d%s",
+                         data_bits, META_L, data_bits+META_L, warn_golden_len ? " [UWAGA: golden != data+L]" : "");
+              end else begin
+                $display("FAIL: %s", CASE);
+                $display("  mismatch_bits     = %0d", err_mismatch);
+                $display("  nonzero_tail_bits = %0d", err_nonzero_tail);
+                $display("  missing_bits      = %0d", err_missing_bits);
+                $display("  in_bits           = %0d", data_bits);
+                $display("  out_bits          = %0d", out_bits_total);
+                $display("  compared          = %0d", compared_bits);
+                $display("  expected          = %0d (golden)", expected_bits);
+                $display("  expected(L)       = data_bits(%0d) + L(%0d) = %0d%s",
+                         data_bits, META_L, data_bits+META_L, warn_golden_len ? " [UWAGA: golden != data+L]" : "");
+                if (printed_err >= max_err_print)
+                  $display("  INFO: obcieto log bledow (MAX_ERR_PRINT=%0d).", max_err_print);
+              end
+
+              $finish;
+            end
+          end
+        end
+      end
+
+      // WATCHDOG
+      begin : wdog
+        repeat (TIMEOUT_CYCLES) @(posedge clk);
+        $display("FAIL: TIMEOUT (%0d cykli) - brak out_last", TIMEOUT_CYCLES);
+        $display("  so_far: mismatch=%0d nonzero_tail=%0d", err_mismatch, err_nonzero_tail);
+        void'($fclose(fd_stream));
+        void'($fclose(fd_crc));
+        $finish;
+      end
+    join_none
+  end
+
+endmodule

@@ -1,0 +1,168 @@
+% $ biblatex auxiliary file $
+% $ biblatex bbl format version 3.3 $
+% Do not modify the above lines!
+%
+% This is an auxiliary file used by the 'biblatex' package.
+% This file may safely be deleted. It will be recreated as
+% required.
+%
+\begingroup
+\makeatletter
+\@ifundefined{ver@biblatex.sty}
+  {\@latex@error
+     {Missing 'biblatex' package}
+     {The bibliography requires the 'biblatex' package.}
+      \aftergroup\endinput}
+  {}
+\endgroup
+
+\datalist[entry]{nty/global//global/global/global}
+  \entry{bib:3gpp_38211}{online}{}{}
+    \name{author}{2}{}{%
+      {{hash=E}{%
+         family={{ETSI}},
+         familyi={E\bibinitperiod},
+      }}%
+      {{hash=G}{%
+         family={{3GPP}},
+         familyi={G\bibinitperiod},
+      }}%
+    }
+    \strng{namehash}{EG1}
+    \strng{fullhash}{EG1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{sortinit}{E}
+    \field{sortinithash}{E}
+    \field{title}{ETSI TS 138 211 V18.6.0 (2025-04): 5G; NR; Physical channels
+  and modulation (3GPP TS 38.211 version 18.6.0 Release 18)}
+    \field{year}{2025}
+  \endentry
+
+  \entry{bib:3gpp_38212}{online}{}{}
+    \name{author}{2}{}{%
+      {{hash=E}{%
+         family={{ETSI}},
+         familyi={E\bibinitperiod},
+      }}%
+      {{hash=G}{%
+         family={{3GPP}},
+         familyi={G\bibinitperiod},
+      }}%
+    }
+    \strng{namehash}{EG1}
+    \strng{fullhash}{EG1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{sortinit}{E}
+    \field{sortinithash}{E}
+    \field{title}{ETSI TS 138 212 V18.7.0 (2025-07): 5G; NR; Multiplexing and
+  channel coding (3GPP TS 38.212 version 18.7.0 Release 18)}
+    \field{year}{2025}
+  \endentry
+
+  \entry{bib:3gpp_38214}{online}{}{}
+    \name{author}{2}{}{%
+      {{hash=E}{%
+         family={{ETSI}},
+         familyi={E\bibinitperiod},
+      }}%
+      {{hash=G}{%
+         family={{3GPP}},
+         familyi={G\bibinitperiod},
+      }}%
+    }
+    \strng{namehash}{EG1}
+    \strng{fullhash}{EG1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{sortinit}{E}
+    \field{sortinithash}{E}
+    \field{title}{ETSI TS 138 214 V18.6.0 (2025-04): 5G; NR; Physical layer
+  procedures for data (3GPP TS 38.214 version 18.6.0 Release 18)}
+    \field{year}{2025}
+  \endentry
+
+  \entry{bib:nguyen2019_qcldpc}{article}{}{}
+    \name{author}{3}{}{%
+      {{hash=NTTB}{%
+         family={Nguyen},
+         familyi={N\bibinitperiod},
+         given={Tram Thi\bibnamedelima Bao},
+         giveni={T\bibinitperiod\bibinitdelim T\bibinitperiod\bibinitdelim
+  B\bibinitperiod},
+      }}%
+      {{hash=NTNT}{%
+         family={Nguyen},
+         familyi={N\bibinitperiod},
+         given={Tuy Nguyen\bibnamedelima Tan},
+         giveni={T\bibinitperiod\bibinitdelim N\bibinitperiod\bibinitdelim
+  T\bibinitperiod},
+      }}%
+      {{hash=LH}{%
+         family={Lee},
+         familyi={L\bibinitperiod},
+         given={Hanho},
+         giveni={H\bibinitperiod},
+      }}%
+    }
+    \strng{namehash}{NTTBNTNTLH1}
+    \strng{fullhash}{NTTBNTNTLH1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{sortinit}{N}
+    \field{sortinithash}{N}
+    \field{number}{668}
+    \field{title}{Efficient QC-LDPC Encoder for 5G New Radio}
+    \field{volume}{8}
+    \field{journaltitle}{Electronics}
+    \field{year}{2019}
+  \endentry
+
+  \entry{bib:sharetechnote_pdsch}{online}{}{}
+    \name{author}{1}{}{%
+      {{hash=S}{%
+         family={{ShareTechnote}},
+         familyi={S\bibinitperiod},
+      }}%
+    }
+    \strng{namehash}{S1}
+    \strng{fullhash}{S1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{sortinit}{S}
+    \field{sortinithash}{S}
+    \field{title}{PDSCH (Physical Data Shared Channel) in detail}
+    \verb{url}
+    \verb https://www.sharetechnote.com/html/5G/5G_PDSCH.html
+    \endverb
+    \field{year}{2026}
+    \field{urlday}{01}
+    \field{urlmonth}{10}
+    \field{urlyear}{2025}
+  \endentry
+
+  \entry{bib:stavinov2010_parallel_crc_gen}{article}{}{}
+    \name{author}{1}{}{%
+      {{hash=SE}{%
+         family={Stavinov},
+         familyi={S\bibinitperiod},
+         given={Evgeni},
+         giveni={E\bibinitperiod},
+      }}%
+    }
+    \strng{namehash}{SE1}
+    \strng{fullhash}{SE1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{sortinit}{S}
+    \field{sortinithash}{S}
+    \field{note}{January 2010 -- Issue 234}
+    \field{number}{234}
+    \field{pages}{38\bibrangedash 45}
+    \field{title}{A Practical Parallel CRC Generation Method}
+    \field{journaltitle}{Circuit Cellar}
+    \field{year}{2010}
+  \endentry
+\enddatalist
+\endinput

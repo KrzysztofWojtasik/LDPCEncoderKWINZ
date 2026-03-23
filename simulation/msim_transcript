@@ -1,0 +1,247 @@
+# Reading pref.tcl
+# //  Questa Intel Starter FPGA Edition-64
+# //  Version 2021.2 win64 Apr 14 2021
+# //
+# //  Copyright 1991-2021 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  QuestaSim and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# do PDSCHTx_run_msim_rtl_verilog.do
+# if {[file exists rtl_work]} {
+# 	vdel -lib rtl_work -all
+# }
+# vlib rtl_work
+# vmap work rtl_work
+# Questa Intel Starter FPGA Edition-64 vmap 2021.2 Lib Mapping Utility 2021.04 Apr 14 2021
+# vmap work rtl_work 
+# Copying D:/Apps/Questa/questa_fse/win64/../modelsim.ini to modelsim.ini
+# Modifying modelsim.ini
+# 
+# vlog  -work work +incdir+D:/Docs/Uczelnia/Dyplom1/rtl {D:/Docs/Uczelnia/Dyplom1/rtl/LDPC_prepv.v}
+# Questa Intel Starter FPGA Edition-64 vlog 2021.2 Compiler 2021.04 Apr 14 2021
+# Start time: 00:55:46 on Jan 15,2026
+# vlog -reportprogress 300 -work work "+incdir+D:/Docs/Uczelnia/Dyplom1/rtl" D:/Docs/Uczelnia/Dyplom1/rtl/LDPC_prepv.v 
+# -- Compiling module LDPC_prep
+# 
+# Top level modules:
+# 	LDPC_prep
+# End time: 00:55:46 on Jan 15,2026, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0
+# vlog  -work work +incdir+D:/Docs/Uczelnia/Dyplom1/rtl {D:/Docs/Uczelnia/Dyplom1/rtl/crc_tb_parallel.v}
+# Questa Intel Starter FPGA Edition-64 vlog 2021.2 Compiler 2021.04 Apr 14 2021
+# Start time: 00:55:46 on Jan 15,2026
+# vlog -reportprogress 300 -work work "+incdir+D:/Docs/Uczelnia/Dyplom1/rtl" D:/Docs/Uczelnia/Dyplom1/rtl/crc_tb_parallel.v 
+# -- Compiling module crc_tb_parallel
+# 
+# Top level modules:
+# 	crc_tb_parallel
+# End time: 00:55:46 on Jan 15,2026, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0
+# vlog  -work work +incdir+D:/Docs/Uczelnia/Dyplom1/rtl {D:/Docs/Uczelnia/Dyplom1/rtl/crc_cb_parallel.v}
+# Questa Intel Starter FPGA Edition-64 vlog 2021.2 Compiler 2021.04 Apr 14 2021
+# Start time: 00:55:46 on Jan 15,2026
+# vlog -reportprogress 300 -work work "+incdir+D:/Docs/Uczelnia/Dyplom1/rtl" D:/Docs/Uczelnia/Dyplom1/rtl/crc_cb_parallel.v 
+# -- Compiling module crc_cb_parallel
+# 
+# Top level modules:
+# 	crc_cb_parallel
+# End time: 00:55:46 on Jan 15,2026, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0
+# vlog  -work work +incdir+D:/Docs/Uczelnia/Dyplom1/rtl {D:/Docs/Uczelnia/Dyplom1/rtl/crc_serial.v}
+# Questa Intel Starter FPGA Edition-64 vlog 2021.2 Compiler 2021.04 Apr 14 2021
+# Start time: 00:55:46 on Jan 15,2026
+# vlog -reportprogress 300 -work work "+incdir+D:/Docs/Uczelnia/Dyplom1/rtl" D:/Docs/Uczelnia/Dyplom1/rtl/crc_serial.v 
+# -- Compiling module crc_serial
+# 
+# Top level modules:
+# 	crc_serial
+# End time: 00:55:46 on Jan 15,2026, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0
+# vlog  -work work +incdir+D:/Docs/Uczelnia/Dyplom1/rtl {D:/Docs/Uczelnia/Dyplom1/rtl/crc_update.v}
+# Questa Intel Starter FPGA Edition-64 vlog 2021.2 Compiler 2021.04 Apr 14 2021
+# Start time: 00:55:46 on Jan 15,2026
+# vlog -reportprogress 300 -work work "+incdir+D:/Docs/Uczelnia/Dyplom1/rtl" D:/Docs/Uczelnia/Dyplom1/rtl/crc_update.v 
+# -- Compiling module crc_update
+# 
+# Top level modules:
+# 	crc_update
+# End time: 00:55:46 on Jan 15,2026, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0
+# vlog  -work work +incdir+D:/Docs/Uczelnia/Dyplom1/rtl {D:/Docs/Uczelnia/Dyplom1/rtl/PDSCHTx.v}
+# Questa Intel Starter FPGA Edition-64 vlog 2021.2 Compiler 2021.04 Apr 14 2021
+# Start time: 00:55:46 on Jan 15,2026
+# vlog -reportprogress 300 -work work "+incdir+D:/Docs/Uczelnia/Dyplom1/rtl" D:/Docs/Uczelnia/Dyplom1/rtl/PDSCHTx.v 
+# -- Compiling module PDSCHTx
+# 
+# Top level modules:
+# 	PDSCHTx
+# End time: 00:55:46 on Jan 15,2026, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0
+# vlog  -work work +incdir+D:/Docs/Uczelnia/Dyplom1/rtl {D:/Docs/Uczelnia/Dyplom1/rtl/Ceil.v}
+# Questa Intel Starter FPGA Edition-64 vlog 2021.2 Compiler 2021.04 Apr 14 2021
+# Start time: 00:55:47 on Jan 15,2026
+# vlog -reportprogress 300 -work work "+incdir+D:/Docs/Uczelnia/Dyplom1/rtl" D:/Docs/Uczelnia/Dyplom1/rtl/Ceil.v 
+# -- Compiling module Ceil
+# 
+# Top level modules:
+# 	Ceil
+# End time: 00:55:47 on Jan 15,2026, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0
+# vlog  -work work +incdir+D:/Docs/Uczelnia/Dyplom1/rtl {D:/Docs/Uczelnia/Dyplom1/rtl/LDPC_encode.v}
+# Questa Intel Starter FPGA Edition-64 vlog 2021.2 Compiler 2021.04 Apr 14 2021
+# Start time: 00:55:47 on Jan 15,2026
+# vlog -reportprogress 300 -work work "+incdir+D:/Docs/Uczelnia/Dyplom1/rtl" D:/Docs/Uczelnia/Dyplom1/rtl/LDPC_encode.v 
+# -- Compiling module LDPC_encode
+# 
+# Top level modules:
+# 	LDPC_encode
+# End time: 00:55:47 on Jan 15,2026, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0
+# 
+# vlog  -work work +incdir+D:/Docs/Uczelnia/Dyplom1/rtl {D:/Docs/Uczelnia/Dyplom1/rtl/Ceil.v}
+# Questa Intel Starter FPGA Edition-64 vlog 2021.2 Compiler 2021.04 Apr 14 2021
+# Start time: 00:55:47 on Jan 15,2026
+# vlog -reportprogress 300 -work work "+incdir+D:/Docs/Uczelnia/Dyplom1/rtl" D:/Docs/Uczelnia/Dyplom1/rtl/Ceil.v 
+# -- Compiling module Ceil
+# 
+# Top level modules:
+# 	Ceil
+# End time: 00:55:47 on Jan 15,2026, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0
+# vlog  -work work +incdir+D:/Docs/Uczelnia/Dyplom1/rtl {D:/Docs/Uczelnia/Dyplom1/rtl/crc_cb_parallel.v}
+# Questa Intel Starter FPGA Edition-64 vlog 2021.2 Compiler 2021.04 Apr 14 2021
+# Start time: 00:55:47 on Jan 15,2026
+# vlog -reportprogress 300 -work work "+incdir+D:/Docs/Uczelnia/Dyplom1/rtl" D:/Docs/Uczelnia/Dyplom1/rtl/crc_cb_parallel.v 
+# -- Compiling module crc_cb_parallel
+# 
+# Top level modules:
+# 	crc_cb_parallel
+# End time: 00:55:47 on Jan 15,2026, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0
+# vlog  -work work +incdir+D:/Docs/Uczelnia/Dyplom1/rtl {D:/Docs/Uczelnia/Dyplom1/rtl/crc_serial.v}
+# Questa Intel Starter FPGA Edition-64 vlog 2021.2 Compiler 2021.04 Apr 14 2021
+# Start time: 00:55:47 on Jan 15,2026
+# vlog -reportprogress 300 -work work "+incdir+D:/Docs/Uczelnia/Dyplom1/rtl" D:/Docs/Uczelnia/Dyplom1/rtl/crc_serial.v 
+# -- Compiling module crc_serial
+# 
+# Top level modules:
+# 	crc_serial
+# End time: 00:55:47 on Jan 15,2026, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0
+# vlog  -work work +incdir+D:/Docs/Uczelnia/Dyplom1/rtl {D:/Docs/Uczelnia/Dyplom1/rtl/crc_update.v}
+# Questa Intel Starter FPGA Edition-64 vlog 2021.2 Compiler 2021.04 Apr 14 2021
+# Start time: 00:55:47 on Jan 15,2026
+# vlog -reportprogress 300 -work work "+incdir+D:/Docs/Uczelnia/Dyplom1/rtl" D:/Docs/Uczelnia/Dyplom1/rtl/crc_update.v 
+# -- Compiling module crc_update
+# 
+# Top level modules:
+# 	crc_update
+# End time: 00:55:47 on Jan 15,2026, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0
+# vlog  -work work +incdir+D:/Docs/Uczelnia/Dyplom1/rtl {D:/Docs/Uczelnia/Dyplom1/rtl/crc_tb_parallel.v}
+# Questa Intel Starter FPGA Edition-64 vlog 2021.2 Compiler 2021.04 Apr 14 2021
+# Start time: 00:55:47 on Jan 15,2026
+# vlog -reportprogress 300 -work work "+incdir+D:/Docs/Uczelnia/Dyplom1/rtl" D:/Docs/Uczelnia/Dyplom1/rtl/crc_tb_parallel.v 
+# -- Compiling module crc_tb_parallel
+# 
+# Top level modules:
+# 	crc_tb_parallel
+# End time: 00:55:47 on Jan 15,2026, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0
+# vlog  -work work +incdir+D:/Docs/Uczelnia/Dyplom1/rtl {D:/Docs/Uczelnia/Dyplom1/rtl/LDPC_encode.v}
+# Questa Intel Starter FPGA Edition-64 vlog 2021.2 Compiler 2021.04 Apr 14 2021
+# Start time: 00:55:47 on Jan 15,2026
+# vlog -reportprogress 300 -work work "+incdir+D:/Docs/Uczelnia/Dyplom1/rtl" D:/Docs/Uczelnia/Dyplom1/rtl/LDPC_encode.v 
+# -- Compiling module LDPC_encode
+# 
+# Top level modules:
+# 	LDPC_encode
+# End time: 00:55:47 on Jan 15,2026, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0
+# vlog  -work work +incdir+D:/Docs/Uczelnia/Dyplom1/rtl {D:/Docs/Uczelnia/Dyplom1/rtl/LDPC_prepv.v}
+# Questa Intel Starter FPGA Edition-64 vlog 2021.2 Compiler 2021.04 Apr 14 2021
+# Start time: 00:55:47 on Jan 15,2026
+# vlog -reportprogress 300 -work work "+incdir+D:/Docs/Uczelnia/Dyplom1/rtl" D:/Docs/Uczelnia/Dyplom1/rtl/LDPC_prepv.v 
+# -- Compiling module LDPC_prep
+# 
+# Top level modules:
+# 	LDPC_prep
+# End time: 00:55:47 on Jan 15,2026, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0
+# vlog  -work work +incdir+D:/Docs/Uczelnia/Dyplom1/rtl {D:/Docs/Uczelnia/Dyplom1/rtl/PDSCHTx.v}
+# Questa Intel Starter FPGA Edition-64 vlog 2021.2 Compiler 2021.04 Apr 14 2021
+# Start time: 00:55:47 on Jan 15,2026
+# vlog -reportprogress 300 -work work "+incdir+D:/Docs/Uczelnia/Dyplom1/rtl" D:/Docs/Uczelnia/Dyplom1/rtl/PDSCHTx.v 
+# -- Compiling module PDSCHTx
+# 
+# Top level modules:
+# 	PDSCHTx
+# End time: 00:55:47 on Jan 15,2026, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0
+# vlog -sv -work work +incdir+D:/Docs/Uczelnia/Dyplom1/test_bench {D:/Docs/Uczelnia/Dyplom1/test_bench/test_PDSCH.sv}
+# Questa Intel Starter FPGA Edition-64 vlog 2021.2 Compiler 2021.04 Apr 14 2021
+# Start time: 00:55:47 on Jan 15,2026
+# vlog -reportprogress 300 -sv -work work "+incdir+D:/Docs/Uczelnia/Dyplom1/test_bench" D:/Docs/Uczelnia/Dyplom1/test_bench/test_PDSCH.sv 
+# -- Compiling module test_PDSCH
+# 
+# Top level modules:
+# 	test_PDSCH
+# End time: 00:55:47 on Jan 15,2026, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0
+# 
+# vsim -t 1ps -L altera_ver -L lpm_ver -L sgate_ver -L altera_mf_ver -L altera_lnsim_ver -L cyclonev_ver -L cyclonev_hssi_ver -L cyclonev_pcie_hip_ver -L rtl_work -L work -voptargs="+acc"  test_PDSCH
+# vsim -t 1ps -L altera_ver -L lpm_ver -L sgate_ver -L altera_mf_ver -L altera_lnsim_ver -L cyclonev_ver -L cyclonev_hssi_ver -L cyclonev_pcie_hip_ver -L rtl_work -L work -voptargs=""+acc"" test_PDSCH 
+# Start time: 00:55:48 on Jan 15,2026
+# ** Note: (vsim-3812) Design is being optimized...
+# ** Note: (vopt-143) Recognized 4 FSMs in module "LDPC_encode(fast)".
+# ** Note: (vopt-143) Recognized 4 FSMs in module "test_PDSCH(fast)".
+# ** Note: (vopt-143) Recognized 3 FSMs in module "LDPC_prep(fast)".
+# ** Note: (vopt-143) Recognized 1 FSM in module "crc_tb_parallel(fast)".
+# ** Note: (vopt-143) Recognized 1 FSM in module "crc_cb_parallel(fast)".
+# ** Note: (vopt-143) Recognized 1 FSM in module "crc_serial(fast__1)".
+# ** Note: (vopt-143) Recognized 1 FSM in module "crc_serial(fast__2)".
+# ** Note: (vopt-143) Recognized 1 FSM in module "crc_serial(fast)".
+# ** Note: (vopt-143) Recognized 1 FSM in module "Ceil(fast)".
+# Loading sv_std.std
+# Loading work.test_PDSCH(fast)
+# Loading work.PDSCHTx(fast)
+# Loading work.crc_tb_parallel(fast)
+# Loading work.crc_serial(fast)
+# Loading work.crc_serial(fast__1)
+# Loading work.crc_update(fast)
+# Loading work.crc_update(fast__1)
+# Loading work.LDPC_prep(fast)
+# Loading work.Ceil(fast)
+# Loading work.crc_cb_parallel(fast)
+# Loading work.crc_serial(fast__2)
+# Loading work.crc_update(fast__2)
+# Loading work.LDPC_encode(fast)
+# 
+# add wave *
+# view structure
+# .main_pane.structure.interior.cs.body.struct
+# view signals
+# .main_pane.objects.interior.cs.body.tree
+# run -all
+# META: A=59761 (tb_len=59761) CB_COUNT=8 K=7744 FILLER=246 ZC=352 BG=1
+# SEND TB bits=59761 (A=59761)
+# GOLDEN_FLAT bits=183888 (lines=8)
+# tin_first = 2  
+# tin_last = 935  
+# tout_fisrt = 79606  
+# STREAM_OK: bits=183888
+# PASS: A59761 | dut_bits=183888 golden_bits=183888
+# Zapisano: ../vectors/PDSCH/Output_DUT/A59761_dut_out_bits.txt
+# ** Note: $finish    : D:/Docs/Uczelnia/Dyplom1/test_bench/test_PDSCH.sv(587)
+#    Time: 826875001 ps  Iteration: 0  Instance: /test_PDSCH
+# 1
+# Break in NamedBeginStat mon at D:/Docs/Uczelnia/Dyplom1/test_bench/test_PDSCH.sv line 587
+# End time: 00:56:28 on Jan 15,2026, Elapsed time: 0:00:40
+# Errors: 0, Warnings: 0

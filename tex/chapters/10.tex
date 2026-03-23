@@ -1,0 +1,23 @@
+\chapter{Lista dodatkowych plików, uzupełniających tekst pracy}
+
+Do pracy dołączono komplet plików projektu umożliwiających odtworzenie wyników (symulacja oraz kompilacja w~Quartus Prime), a~także weryfikację poprawności na podstawie wektorów testowych.
+Struktura katalogów została przygotowana w~taki sposób, aby rozdzielić część obliczeniowo-referencyjną (MATLAB), implementację sprzętową (RTL) oraz dane do weryfikacji (wektory i~wyniki).
+
+W~systemie do pracy dołączono dodatkowe pliki zawierające:
+\begin{itemize}
+  \item \textbf{matlab/} -- skrypty \textit{MATLAB} do generowania danych referencyjnych i~wektorów testowych (m.in. dla CRC, przygotowania LDPC oraz kodowania LDPC), a~także do generowania tablic/plików ROM wykorzystywanych w~implementacji.
+        W~podkatalogu \textbf{matlab/ldpc\_roms\_out/} znajdują się wygenerowane pliki w~formacie \texttt{.memh}/\texttt{.txt} (tablice dla BG1/BG2).
+
+  \item \textbf{rtl/} -- źródła implementacji sprzętowej (moduły HDL) całego toru PDSCHTx oraz bloków składowych (m.in. CRC i~bloki związane z~LDPC).
+        Podkatalog \textbf{rtl/memory/} zawiera pliki pamięci/ROM (np. \texttt{.memh}) używane do odwzorowania macierzy bazowych oraz parametrów grafów.
+
+  \item \textbf{vectors/} -- zestawy wektorów testowych i~danych referencyjnych wykorzystywanych w~weryfikacji.
+        Dane są pogrupowane tematycznie (np. CRC dla TB/CB, przygotowanie LDPC, kodowanie LDPC, przypadki PDSCH).
+        W~typowym układzie znajdują się podkatalogi \textbf{Output\_Matlab} (wyniki wzorcowe oraz pliki \texttt{meta}) oraz \textbf{Output\_DUT} (zrzuty danych z~symulacji/implementacji do porównania).
+
+  \item \textbf{test\_bench/} -- pliki testbenchów HDL oraz elementy pomocnicze do uruchamiania testów i~porównywania wyników z~danymi referencyjnymi.
+
+  \item \textbf{simulation/} -- środowisko i~pliki pomocnicze związane z~symulacją (w tym katalogi robocze symulatora oraz przygotowane struktury do uruchamiania testów).
+
+  \item \textbf{output\_files/} -- raporty i~wyniki kompilacji (m.in. raporty mapowania, dopasowania, analiz czasowych) oraz pliki wynikowe generowane przez narzędzia projektowe, wykorzystywane w~rozdziale z~wynikami (zużycie zasobów, osiągane częstotliwości itp.).
+\end{itemize}

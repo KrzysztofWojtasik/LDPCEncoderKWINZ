@@ -1,0 +1,68 @@
+\chapter{Podsumowanie i wnioski}
+
+Celem pracy było opracowanie i zaimplementowanie w języku opisu sprzętu wybranych etapów toru nadajnika PDSCH w~standardzie 5G NR, ze szczególnym uwzględnieniem dopisania sum kontrolnych CRC oraz kodowania QC-LDPC, przy założeniu stałej magistrali danych 64~bity. Zakres obejmował również przygotowanie danych do kodowania, minimalny podzbiór operacji powiązanych z \english{rate matching'em} oraz weryfikację bitowo-dokładną w oparciu o wektory referencyjne. 
+
+\section*{Ocena realizacji celów}
+Na podstawie przeprowadzonych prac można stwierdzić, że założone cele zostały osiągnięte w~zakresie przyjętym w pracy:
+
+\begin{itemize}
+  \item Zaimplementowano kompletny łańcuch przetwarzania zintegrowany w module top-level \texttt{PDSCHTx}, realizujący kolejne etapy: dopisanie CRC do TB, przygotowanie danych do kodowania LDPC oraz kodowanie LDPC, z emisją danych wyjściowych jako strumień 64-bit (CB po CB, a znacznik końca TB pojawia się tylko raz na końcu całego strumienia). 
+
+  \item Zachowano spójny format danych w całym torze: interpretację bitów w kolejności MSB-first oraz deterministyczny strumień 64-bit niezależnie od długości TB, z jednoznaczną obsługą dopełnień poprzez metadane wyjściowe \texttt{out\_pad\_left} i \texttt{out\_pad\_right}. 
+
+  \item Opracowano środowisko weryfikacji oparte o symulację HDL (Questa), testbench’e oraz referencję MATLAB, umożliwiające automatyczne porównanie wyników DUT z wektorami wzorcowymi w sposób bitowo-dokładny, wraz z generacją plików wynikowych i raportowaniem rozbieżności. 
+
+  \item Zweryfikowano poprawność kluczowych mechanizmów wymaganych do zgodności z przyjętym modelem referencyjnym: obliczenie oraz dołączenie CRC, przygotowanie oraz kodowanie LDPC, nieuwzględnianie \english{filler bits} w strumieniu transmisyjnym oraz pominięcie dwóch pierwszych bloków długości $Z_c$ na wyjściu kodera dla każdego CB (mechanizm zgodny z ideą \english{puncturing’u} w procedurach 5G NR). 
+\end{itemize}
+
+\section*{Wnioski z weryfikacji i analizy implementacyjnej}
+Wyniki rozdziału weryfikacyjnego pozwalają sformułować następujące wnioski praktyczne:
+
+\begin{itemize}
+  \item \textbf{Model pracy toru tworzy niepotrzebne opóźnienie:} w aktualnej architekturze etap LDPC\_encode przechodzi do fazy emisji dopiero po przetworzeniu wszystkich bloków kodowych, co powoduje dominację tego modułu w całkowitej latencji i ma bezpośredni wpływ na opóźnienie end-to-end. 
+
+  \item \textbf{Osiągalna przepustowość jest rzędu dziesiątek Mb/s:} na podstawie zmierzonej latencji (w cyklach) oraz oszacowanego $F_{\max}$ wyznaczono przepustowość goodput TB. Dla krótkich ramek narzut sterowania dominuje, natomiast dla dłuższych przypadków przepustowość stabilizuje się na poziomie kilkudziesięciu Mb/s. 
+  \item \textbf{Projekt jest realizowalny w docelowym FPGA z istotnym zapasem zasobów:}
+  po pełnej kompilacji w Quartus Prime projekt mieści się w układzie Cyclone~V z wykorzystaniem ok. 29\% ALM oraz niskim udziałem pamięci i bloków DSP, co pozostawia przestrzeń na dalszą rozbudowę. 
+
+  \item \textbf{Ograniczeniem jest ścieżka krytyczna i wymaganie 100 MHz:}
+  analiza TimeQuest dla constraintu 100~MHz wykazała ujemny slack dla setup w najgorszym narożniku, co przekłada się na $F_{\max}$ na poziomie ok. 70--71~MHz.
+  Jednocześnie sprawdzenia hold oraz minimalnej szerokości impulsu są spełnione. 
+\end{itemize}
+
+\section*{Ograniczenia aktualnej wersji}
+Należy podkreślić, że praca realizuje funkcjonalności do poziomu umożliwiającego bitowo-dokładną weryfikację i ocenę realizowalności w FPGA, jednak pełny tor PDSCH w rozumieniu standardu obejmuje dodatkowe etapy. W szczególności:
+\begin{itemize}
+  \item nie zaimplementowano bloku mieszania (\textit{scrambling}), który był rozważany jako element opcjonalny,
+  \item zrealizowano jedynie minimalny podzbiór operacji powiązanych z \english{rete matching'em}, bez pełnej procedury dopasowania długości do zasobów transmisji,
+  \item interfejs sterowania przepływem danych bazuje na \texttt{valid/last} bez mechanizmu handshake,
+  \item system w obecnym modelu obsługuje przetwarzanie jednego TB w jednym cyklu pracy, a rozpoczęcie kolejnego wymaga resetu układu,
+  \item kodowanie LDPC jest realizowane w sposób sekwencyjny, bez potokowania ani równoległego przetwarzania wielu bloków kodowych. 
+\end{itemize}
+
+\section*{Kierunki dalszych prac}
+W oparciu o uzyskane rezultaty oraz zidentyfikowane ograniczenia można wskazać następujące, logiczne kierunki rozwoju projektu:
+
+\begin{itemize}
+  \item \textbf{Rozszerzenie toru o \english{scrambling} i pełny \english{rate matching}} oraz ewentualnie o dalsze elementy toru PDSCH. 
+
+  \item \textbf{Usprawnienie architektury pod kątem latencji i przepustowości:} Zrównoleglenie obliczeń, ograniczenie dominacji buforowania (np. poprzez częściowe potokowanie lub wcześniejszą emisję fragmentów strumienia) oraz redukcję logiki kombinacyjnej na ścieżkach sterujących w celu podniesienia $F_{\max}$. 
+
+  \item \textbf{Optymalizacja przekazywania danych na wyjście:}
+  obecna organizacja emisji zakłada wyrównywanie fragmentów (m.in. granic CB oraz bloków parzystości) do słów 64-bit
+  i nierozpoczynanie kolejnych fragmentów w środku słowa, co upraszcza sterowanie i adresowanie buforów,
+  jednak generuje puste bity w słowach brzegowych oraz dodatkowe narzuty wynikające z dopełnień.
+  Naturalnym kierunkiem rozwoju jest zastosowanie bardziej zwartej emisji z możliwością „sklejania” fragmentów
+  bitowo (ciągły strumień bez sztucznych granic słowa), przy jednoczesnym zagęszczeniu buforów.
+  Pozwoli to zmniejszyć objętość danych wyjściowych i poprawić efektywną przepustowość,
+  kosztem bardziej złożonej logiki.
+
+
+
+  \item \textbf{Rozszerzenie interfejsu o pełny \english{handshake}} (np. \texttt{AXI4}) i tryb pracy ciągłej, umożliwiający obsługę kolejnych TB bez konieczności resetu. 
+
+  \item \textbf{Rozbudowa pakietu testów:} zwiększenie pokrycia o dodatkowe konfiguracje parametrów LDPC oraz testy regresyjne.
+\end{itemize}
+
+\section*{Podsumowanie końcowe}
+Zrealizowany projekt potwierdza możliwość implementacji kluczowych elementów kodowania kanałowego dla toru PDSCH w 5G NR w postaci modularnego systemu RTL o stałej szerokości danych 64~bity, z zachowaniem deterministycznego formatu strumienia i jednoznacznej obsługi metadanych. Wyniki kompilacji w FPGA wskazują na dużą rezerwę zasobów, natomiast analiza czasowa i estymacja goodput pokazują, że aktualne ograniczenia wydajności wynikają głównie z architektury modułu \texttt{LDPC\_encode} oraz czasu ścieżki krytycznej. Wskazane kierunki rozwoju stanowią bezpośrednią ścieżkę do rozszerzenia pracy w stronę pełniejszej realizacji toru PDSCH oraz poprawy parametrów czasowych. 

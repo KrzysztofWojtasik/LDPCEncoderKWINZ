@@ -1,0 +1,109 @@
+\chapter{Spis skrótów i symboli}
+
+\begin{itemize}
+
+% =========================================================
+% SKRÓTY (alfabetycznie)
+% =========================================================
+\item[] \textbf{Skróty}
+
+\item[16QAM] modulacja 16-QAM
+\item[256QAM] modulacja 256-QAM
+\item[3GPP] ang. \english{3rd Generation Partnership Project}
+\item[5G] piąta generacja systemów komórkowych (ang. \english{fifth generation})
+\item[64QAM] modulacja 64-QAM
+\item[ALM] adaptacyjny moduł logiczny (ang. \english{adaptive logic module})
+\item[ASIC] układ scalony o specjalizowanej funkcji (ang. \english{application-specific integrated circuit})
+\item[AXI4] interfejs AXI4 (ang. \english{Advanced eXtensible Interface 4})
+
+\item[BG] graf bazowy (ang. \english{base graph})
+\item[BG1] graf bazowy 1 (ang. \english{base graph 1})
+\item[BG2] graf bazowy 2 (ang. \english{base graph 2})
+
+\item[CB] blok kodowy (ang. \english{code block})
+\item[CRC] suma kontrolna CRC (ang. \english{cyclic redundancy check})
+\item[CRC16] CRC o długości 16 bitów (ang. \english{CRC-16})
+\item[CRC24A] CRC o długości 24 bitów, wariant A (ang. \english{CRC-24A})
+\item[CRC24B] CRC o długości 24 bitów, wariant B (ang. \english{CRC-24B})
+\item[CSR] format rzadkiej macierzy: skompresowany zapis wierszowy (ang. \english{compressed sparse row})
+
+\item[DL-SCH] współdzielony kanał transportowy w łączu w dół (ang. \english{Downlink Shared Channel})
+\item[DSP] przetwarzanie sygnałów cyfrowych / bloki DSP (ang. \english{digital signal processing})
+\item[DUT] badany układ w {testbench'u} (ang. \english{device under test})
+
+\item[ETSI] Europejski Instytut Norm Telekomunikacyjnych (ang. \english{European Telecommunications Standards Institute})
+
+\item[FPGA] programowalna macierz bramek (ang. \english{field-programmable gate array})
+
+\item[HARQ] hybrydowy ARQ (ang. \english{hybrid automatic repeat request})
+\item[HDL] język opisu sprzętu (ang. \english{hardware description language})
+
+\item[LDPC] kody o niskiej gęstości kontroli parzystości (ang. \english{low-density parity-check})
+\item[LSB] najmniej znaczący bit (ang. \english{least significant bit})
+
+\item[MCS] schemat modulacji i kodowania (ang. \english{modulation and coding scheme})
+\item[MSB] najbardziej znaczący bit (ang. \english{most significant bit})
+
+\item[NR] ang. \english{New Radio}
+
+\item[OFDM] multipleksacja z ortogonalnym podziałem częstotliwości (ang. \english{orthogonal frequency-division multiplexing})
+
+\item[PDSCH] fizyczny współdzielony kanał danych w łączu w dół (ang. \english{Physical Downlink Shared Channel})
+\item[PISO] równolegle-wejściowy, szeregowo-wyjściowy (ang. \english{parallel-in serial-out})
+\item[PLL] pętla synchronizacji fazowej (ang. \english{phase-locked loop})
+
+\item[QAM] modulacja amplitudy w kwadraturze (ang. \english{quadrature amplitude modulation})
+\item[QC-LDPC] quasi-cykliczne kody LDPC (ang. \english{quasi-cyclic LDPC})
+\item[QPSK] kluczowanie fazy z przesunięciem kwadraturowym (ang. \english{quadrature phase shift keying})
+
+\item[RAM] pamięć o dostępie swobodnym (ang. \english{random-access memory})
+\item[ROM] pamięć tylko do odczytu (ang. \english{read-only memory})
+\item[RTL] poziom transferu rejestrów (ang. \english{register transfer level})
+\item[RV] wersja redundancji (ang. \english{redundancy version})
+
+\item[SDC] plik ograniczeń czasowych (ang. \english{Synopsys Design Constraints})
+\item[SIPO] szeregowo-wejściowy, równolegle-wyjściowy (ang. \english{serial-in parallel-out})
+
+\item[TB] blok transportowy (ang. \english{transport block})
+
+\item[XOR] alternatywa wykluczająca (ang. \english{exclusive OR})
+
+% =========================================================
+% SYMBOLE (alfabetycznie)
+% =========================================================
+\item[] \textbf{Symbole}
+
+\item[$A$] liczba bitów TB przed dołączeniem CRC
+\item[$B$] liczba bitów po dołączeniu CRC do TB ($B=A+L$)
+\item[$B'$] długość sekwencji po uwzględnieniu CRC na poziomie CB
+\item[$C$] liczba bloków kodowych po segmentacji
+\item[$c$] słowo kodowe (wektor wyjściowy kodera)
+\item[$F$] liczba bitów wypełniających (\english{filler bits})
+\item[$F_{\max}$] maksymalna częstotliwość pracy układu
+\item[$g$] liczba pierwszych bloków parzystości $p_a$
+\item[$H$] macierz kontroli parzystości
+\item[$k_b$] parametr pośredni używany przy doborze $Z_c$
+\item[$K$] długość wejściowego wektora informacji dla QC-LDPC ($K=K_b\cdot Z_c$)
+\item[$K_b$] liczba bloków kolumnowych części informacyjnej (zależna od BG)
+\item[$K_{CB}$] docelowa długość informacji przypadająca na pojedynczy CB po segmentacji
+\item[$K_{CB\_\max}$] maksymalna długość wejściowa bloku kodowego (zależna od BG)
+\item[$L$] długość CRC dołączanego do TB
+\item[$L_{CB}$] długość CRC dołączanego do każdego CB
+\item[$M$] długość zakodowanego strumienia po kodowaniu LDPC (przed pełnym rate matching)
+\item[$N_{cykli}$] liczba cykli zegara potrzebna do przetworzenia przypadku testowego
+\item[$p$] bity parzystości
+\item[$p_a$] cztery pierwsze bloki parzystości
+\item[$p_c$] pozostałe bloki parzystości
+\item[$P_B$] liczba bloków parzystości (zależna od BG)
+\item[$R_{TB}$] przepustowość/goodput dla TB
+\item[$s$] część systematyczna (bity informacyjne)
+\item[$T_{E2E}$] opóźnienie end-to-end (czas przetworzenia)
+\item[$W$] szerokość słowa na magistrali danych (w pracy: 64 bity)
+\item[$Z_c$] rząd liftingu / rozmiar podmacierzy w QC-LDPC
+\item[$Z_{c,\min}$] minimalna wartość $Z_c$ wynikająca z długości $K_{CB}$
+\item[$\alpha_{t,j}$] przesunięcie cykliczne dla składników informacji (z macierzy bazowej)
+\item[$\beta_{t,j}$] przesunięcie cykliczne dla składników $p_a$ (z macierzy bazowej)
+\item[$\rho$] wartość przesunięcia cyklicznego
+\item[$\mathrm{rot}(\cdot,\rho)$] operator przesunięcia cyklicznego o $\rho$
+
+\end{itemize}

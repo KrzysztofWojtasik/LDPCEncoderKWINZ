@@ -1,0 +1,163 @@
+  // ============================================================================
+  // Moduł realizuje jednocykliczną (kombinacyjną) aktualizację CRC o W bitów.
+  //
+  // Zastosowanie:
+  // - przyspieszenie obliczeń CRC w torze równoległym,
+  //   zamiast iteracji bit-po-bicie jak w wersji szeregowej.
+  //
+  // Zasada:
+  // - crc_next jest funkcją liniową GF(2): XOR wybranych bitów z crc_in i din,
+  //   odpowiadającą dokładnie W krokom aktualizacji CRC dla danego wielomianu.
+  // ============================================================================
+
+
+  // ============================================================================
+  // Funkcje aktualizujące CRC (kombinacyjnie):
+  //
+  // - crc24a_update: CRC24A (24 bity)
+  // - crc24b_update: CRC24B (24 bity), uruchamiane dla L==248
+  // - crc16_update : CRC16  (16 bitów)
+  //
+  // Uwaga dot. konwencji bitów:
+  // ============================================================================
+
+ module crc_update #(
+  parameter integer L = 24,      // długość CRC: 16, 24 (24A) lub 248 (24B)
+  parameter integer W = 64       // szerokość porcji danych wejściowych (liczba bitów aktualizowanych naraz)
+)(
+  // Wejścia kombinacyjne:
+  input  wire [((L==248)? 24 : L)-1:0] crc,       // aktualny stan CRC (MIN)
+  input  wire [W-1:0] data,                        // słowo danych MSB-first
+  output wire [((L==248)? 24 : L)-1:0] crc_next    // stan CRC po przetworzeniu W bitów (MOUT)
+);
+  
+  function [23:0] crc24a_update;
+    input [23:0]  crc_in;   // stan CRC przed aktualizacją
+    input [W-1:0] din;      // słowo danych (W bitów)
+    reg   [23:0]  crc_out;
+  begin
+    // Równania XOR wygenerowane offline odpowiadające CRC24A
+   crc_out[23] = crc_in[2] ^ crc_in[5] ^ crc_in[10] ^ crc_in[12] ^ crc_in[13] ^ crc_in[15] ^ crc_in[16] ^ crc_in[18] ^ crc_in[21] ^ din[0] ^ din[1] ^ din[2] ^ din[3] ^ din[4] ^ din[9] ^ din[13] ^ din[15] ^ din[16] ^ din[17] ^ din[18] ^ din[19] ^ din[20] ^ din[21] ^ din[22] ^ din[26] ^ din[29] ^ din[32] ^ din[35] ^ din[38] ^ din[39] ^ din[42] ^ din[45] ^ din[50] ^ din[52] ^ din[53] ^ din[55] ^ din[56] ^ din[58] ^ din[61];
+	crc_out[22] = crc_in[1] ^ crc_in[2] ^ crc_in[4] ^ crc_in[5] ^ crc_in[9] ^ crc_in[10] ^ crc_in[11] ^ crc_in[13] ^ crc_in[14] ^ crc_in[16] ^ crc_in[17] ^ crc_in[18] ^ crc_in[20] ^ crc_in[21] ^ crc_in[23] ^ din[4] ^ din[8] ^ din[9] ^ din[12] ^ din[13] ^ din[14] ^ din[22] ^ din[25] ^ din[26] ^ din[28] ^ din[29] ^ din[31] ^ din[32] ^ din[34] ^ din[35] ^ din[37] ^ din[39] ^ din[41] ^ din[42] ^ din[44] ^ din[45] ^ din[49] ^ din[50] ^ din[51] ^ din[53] ^ din[54] ^ din[56] ^ din[57] ^ din[58] ^ din[60] ^ din[61] ^ din[63];
+	crc_out[21] = crc_in[0] ^ crc_in[1] ^ crc_in[3] ^ crc_in[4] ^ crc_in[8] ^ crc_in[9] ^ crc_in[10] ^ crc_in[12] ^ crc_in[13] ^ crc_in[15] ^ crc_in[16] ^ crc_in[17] ^ crc_in[19] ^ crc_in[20] ^ crc_in[22] ^ crc_in[23] ^ din[3] ^ din[7] ^ din[8] ^ din[11] ^ din[12] ^ din[13] ^ din[21] ^ din[24] ^ din[25] ^ din[27] ^ din[28] ^ din[30] ^ din[31] ^ din[33] ^ din[34] ^ din[36] ^ din[38] ^ din[40] ^ din[41] ^ din[43] ^ din[44] ^ din[48] ^ din[49] ^ din[50] ^ din[52] ^ din[53] ^ din[55] ^ din[56] ^ din[57] ^ din[59] ^ din[60] ^ din[62] ^ din[63];
+	crc_out[20] = crc_in[0] ^ crc_in[2] ^ crc_in[3] ^ crc_in[7] ^ crc_in[8] ^ crc_in[9] ^ crc_in[11] ^ crc_in[12] ^ crc_in[14] ^ crc_in[15] ^ crc_in[16] ^ crc_in[18] ^ crc_in[19] ^ crc_in[21] ^ crc_in[22] ^ crc_in[23] ^ din[2] ^ din[6] ^ din[7] ^ din[10] ^ din[11] ^ din[12] ^ din[20] ^ din[23] ^ din[24] ^ din[26] ^ din[27] ^ din[29] ^ din[30] ^ din[32] ^ din[33] ^ din[35] ^ din[37] ^ din[39] ^ din[40] ^ din[42] ^ din[43] ^ din[47] ^ din[48] ^ din[49] ^ din[51] ^ din[52] ^ din[54] ^ din[55] ^ din[56] ^ din[58] ^ din[59] ^ din[61] ^ din[62] ^ din[63];
+	crc_out[19] = crc_in[1] ^ crc_in[2] ^ crc_in[6] ^ crc_in[7] ^ crc_in[8] ^ crc_in[10] ^ crc_in[11] ^ crc_in[13] ^ crc_in[14] ^ crc_in[15] ^ crc_in[17] ^ crc_in[18] ^ crc_in[20] ^ crc_in[21] ^ crc_in[22] ^ crc_in[23] ^ din[1] ^ din[5] ^ din[6] ^ din[9] ^ din[10] ^ din[11] ^ din[19] ^ din[22] ^ din[23] ^ din[25] ^ din[26] ^ din[28] ^ din[29] ^ din[31] ^ din[32] ^ din[34] ^ din[36] ^ din[38] ^ din[39] ^ din[41] ^ din[42] ^ din[46] ^ din[47] ^ din[48] ^ din[50] ^ din[51] ^ din[53] ^ din[54] ^ din[55] ^ din[57] ^ din[58] ^ din[60] ^ din[61] ^ din[62] ^ din[63];
+	crc_out[18] = crc_in[0] ^ crc_in[1] ^ crc_in[5] ^ crc_in[6] ^ crc_in[7] ^ crc_in[9] ^ crc_in[10] ^ crc_in[12] ^ crc_in[13] ^ crc_in[14] ^ crc_in[16] ^ crc_in[17] ^ crc_in[19] ^ crc_in[20] ^ crc_in[21] ^ crc_in[22] ^ crc_in[23] ^ din[0] ^ din[4] ^ din[5] ^ din[8] ^ din[9] ^ din[10] ^ din[18] ^ din[21] ^ din[22] ^ din[24] ^ din[25] ^ din[27] ^ din[28] ^ din[30] ^ din[31] ^ din[33] ^ din[35] ^ din[37] ^ din[38] ^ din[40] ^ din[41] ^ din[45] ^ din[46] ^ din[47] ^ din[49] ^ din[50] ^ din[52] ^ din[53] ^ din[54] ^ din[56] ^ din[57] ^ din[59] ^ din[60] ^ din[61] ^ din[62] ^ din[63];
+	crc_out[17] = crc_in[0] ^ crc_in[2] ^ crc_in[4] ^ crc_in[6] ^ crc_in[8] ^ crc_in[9] ^ crc_in[10] ^ crc_in[11] ^ crc_in[19] ^ crc_in[20] ^ crc_in[22] ^ crc_in[23] ^ din[0] ^ din[1] ^ din[2] ^ din[7] ^ din[8] ^ din[13] ^ din[15] ^ din[16] ^ din[18] ^ din[19] ^ din[22] ^ din[23] ^ din[24] ^ din[27] ^ din[30] ^ din[34] ^ din[35] ^ din[36] ^ din[37] ^ din[38] ^ din[40] ^ din[42] ^ din[44] ^ din[46] ^ din[48] ^ din[49] ^ din[50] ^ din[51] ^ din[59] ^ din[60] ^ din[62] ^ din[63];
+	crc_out[16] = crc_in[1] ^ crc_in[2] ^ crc_in[3] ^ crc_in[7] ^ crc_in[8] ^ crc_in[9] ^ crc_in[12] ^ crc_in[13] ^ crc_in[15] ^ crc_in[16] ^ crc_in[19] ^ crc_in[22] ^ din[2] ^ din[3] ^ din[4] ^ din[6] ^ din[7] ^ din[9] ^ din[12] ^ din[13] ^ din[14] ^ din[16] ^ din[19] ^ din[20] ^ din[23] ^ din[32] ^ din[33] ^ din[34] ^ din[36] ^ din[37] ^ din[38] ^ din[41] ^ din[42] ^ din[43] ^ din[47] ^ din[48] ^ din[49] ^ din[52] ^ din[53] ^ din[55] ^ din[56] ^ din[59] ^ din[62];
+	crc_out[15] = crc_in[0] ^ crc_in[1] ^ crc_in[2] ^ crc_in[6] ^ crc_in[7] ^ crc_in[8] ^ crc_in[11] ^ crc_in[12] ^ crc_in[14] ^ crc_in[15] ^ crc_in[18] ^ crc_in[21] ^ crc_in[23] ^ din[1] ^ din[2] ^ din[3] ^ din[5] ^ din[6] ^ din[8] ^ din[11] ^ din[12] ^ din[13] ^ din[15] ^ din[18] ^ din[19] ^ din[22] ^ din[31] ^ din[32] ^ din[33] ^ din[35] ^ din[36] ^ din[37] ^ din[40] ^ din[41] ^ din[42] ^ din[46] ^ din[47] ^ din[48] ^ din[51] ^ din[52] ^ din[54] ^ din[55] ^ din[58] ^ din[61] ^ din[63];
+	crc_out[14] = crc_in[0] ^ crc_in[1] ^ crc_in[5] ^ crc_in[6] ^ crc_in[7] ^ crc_in[10] ^ crc_in[11] ^ crc_in[13] ^ crc_in[14] ^ crc_in[17] ^ crc_in[20] ^ crc_in[22] ^ din[0] ^ din[1] ^ din[2] ^ din[4] ^ din[5] ^ din[7] ^ din[10] ^ din[11] ^ din[12] ^ din[14] ^ din[17] ^ din[18] ^ din[21] ^ din[30] ^ din[31] ^ din[32] ^ din[34] ^ din[35] ^ din[36] ^ din[39] ^ din[40] ^ din[41] ^ din[45] ^ din[46] ^ din[47] ^ din[50] ^ din[51] ^ din[53] ^ din[54] ^ din[57] ^ din[60] ^ din[62];
+	crc_out[13] = crc_in[0] ^ crc_in[2] ^ crc_in[4] ^ crc_in[6] ^ crc_in[9] ^ crc_in[15] ^ crc_in[18] ^ crc_in[19] ^ crc_in[23] ^ din[2] ^ din[6] ^ din[10] ^ din[11] ^ din[15] ^ din[18] ^ din[19] ^ din[21] ^ din[22] ^ din[26] ^ din[30] ^ din[31] ^ din[32] ^ din[33] ^ din[34] ^ din[40] ^ din[42] ^ din[44] ^ din[46] ^ din[49] ^ din[55] ^ din[58] ^ din[59] ^ din[63];
+	crc_out[12] = crc_in[1] ^ crc_in[3] ^ crc_in[5] ^ crc_in[8] ^ crc_in[14] ^ crc_in[17] ^ crc_in[18] ^ crc_in[22] ^ crc_in[23] ^ din[1] ^ din[5] ^ din[9] ^ din[10] ^ din[14] ^ din[17] ^ din[18] ^ din[20] ^ din[21] ^ din[25] ^ din[29] ^ din[30] ^ din[31] ^ din[32] ^ din[33] ^ din[39] ^ din[41] ^ din[43] ^ din[45] ^ din[48] ^ din[54] ^ din[57] ^ din[58] ^ din[62] ^ din[63];
+	crc_out[11] = crc_in[0] ^ crc_in[2] ^ crc_in[4] ^ crc_in[7] ^ crc_in[13] ^ crc_in[16] ^ crc_in[17] ^ crc_in[21] ^ crc_in[22] ^ crc_in[23] ^ din[0] ^ din[4] ^ din[8] ^ din[9] ^ din[13] ^ din[16] ^ din[17] ^ din[19] ^ din[20] ^ din[24] ^ din[28] ^ din[29] ^ din[30] ^ din[31] ^ din[32] ^ din[38] ^ din[40] ^ din[42] ^ din[44] ^ din[47] ^ din[53] ^ din[56] ^ din[57] ^ din[61] ^ din[62] ^ din[63];
+	crc_out[10] = crc_in[1] ^ crc_in[2] ^ crc_in[3] ^ crc_in[5] ^ crc_in[6] ^ crc_in[10] ^ crc_in[13] ^ crc_in[18] ^ crc_in[20] ^ crc_in[22] ^ crc_in[23] ^ din[0] ^ din[1] ^ din[2] ^ din[4] ^ din[7] ^ din[8] ^ din[9] ^ din[12] ^ din[13] ^ din[17] ^ din[20] ^ din[21] ^ din[22] ^ din[23] ^ din[26] ^ din[27] ^ din[28] ^ din[30] ^ din[31] ^ din[32] ^ din[35] ^ din[37] ^ din[38] ^ din[41] ^ din[42] ^ din[43] ^ din[45] ^ din[46] ^ din[50] ^ din[53] ^ din[58] ^ din[60] ^ din[62] ^ din[63];
+	crc_out[9] = crc_in[0] ^ crc_in[1] ^ crc_in[4] ^ crc_in[9] ^ crc_in[10] ^ crc_in[13] ^ crc_in[15] ^ crc_in[16] ^ crc_in[17] ^ crc_in[18] ^ crc_in[19] ^ crc_in[22] ^ crc_in[23] ^ din[2] ^ din[4] ^ din[6] ^ din[7] ^ din[8] ^ din[9] ^ din[11] ^ din[12] ^ din[13] ^ din[15] ^ din[17] ^ din[18] ^ din[25] ^ din[27] ^ din[30] ^ din[31] ^ din[32] ^ din[34] ^ din[35] ^ din[36] ^ din[37] ^ din[38] ^ din[39] ^ din[40] ^ din[41] ^ din[44] ^ din[49] ^ din[50] ^ din[53] ^ din[55] ^ din[56] ^ din[57] ^ din[58] ^ din[59] ^ din[62] ^ din[63];
+	crc_out[8] = crc_in[0] ^ crc_in[3] ^ crc_in[8] ^ crc_in[9] ^ crc_in[12] ^ crc_in[14] ^ crc_in[15] ^ crc_in[16] ^ crc_in[17] ^ crc_in[18] ^ crc_in[21] ^ crc_in[22] ^ crc_in[23] ^ din[1] ^ din[3] ^ din[5] ^ din[6] ^ din[7] ^ din[8] ^ din[10] ^ din[11] ^ din[12] ^ din[14] ^ din[16] ^ din[17] ^ din[24] ^ din[26] ^ din[29] ^ din[30] ^ din[31] ^ din[33] ^ din[34] ^ din[35] ^ din[36] ^ din[37] ^ din[38] ^ din[39] ^ din[40] ^ din[43] ^ din[48] ^ din[49] ^ din[52] ^ din[54] ^ din[55] ^ din[56] ^ din[57] ^ din[58] ^ din[61] ^ din[62] ^ din[63];
+	crc_out[7] = crc_in[2] ^ crc_in[7] ^ crc_in[8] ^ crc_in[11] ^ crc_in[13] ^ crc_in[14] ^ crc_in[15] ^ crc_in[16] ^ crc_in[17] ^ crc_in[20] ^ crc_in[21] ^ crc_in[22] ^ din[0] ^ din[2] ^ din[4] ^ din[5] ^ din[6] ^ din[7] ^ din[9] ^ din[10] ^ din[11] ^ din[13] ^ din[15] ^ din[16] ^ din[23] ^ din[25] ^ din[28] ^ din[29] ^ din[30] ^ din[32] ^ din[33] ^ din[34] ^ din[35] ^ din[36] ^ din[37] ^ din[38] ^ din[39] ^ din[42] ^ din[47] ^ din[48] ^ din[51] ^ din[53] ^ din[54] ^ din[55] ^ din[56] ^ din[57] ^ din[60] ^ din[61] ^ din[62];
+	crc_out[6] = crc_in[1] ^ crc_in[2] ^ crc_in[5] ^ crc_in[6] ^ crc_in[7] ^ crc_in[14] ^ crc_in[18] ^ crc_in[19] ^ crc_in[20] ^ din[0] ^ din[2] ^ din[5] ^ din[6] ^ din[8] ^ din[10] ^ din[12] ^ din[13] ^ din[14] ^ din[16] ^ din[17] ^ din[18] ^ din[19] ^ din[20] ^ din[21] ^ din[24] ^ din[26] ^ din[27] ^ din[28] ^ din[31] ^ din[33] ^ din[34] ^ din[36] ^ din[37] ^ din[39] ^ din[41] ^ din[42] ^ din[45] ^ din[46] ^ din[47] ^ din[54] ^ din[58] ^ din[59] ^ din[60];
+	crc_out[5] = crc_in[0] ^ crc_in[1] ^ crc_in[2] ^ crc_in[4] ^ crc_in[6] ^ crc_in[10] ^ crc_in[12] ^ crc_in[15] ^ crc_in[16] ^ crc_in[17] ^ crc_in[19] ^ crc_in[21] ^ din[0] ^ din[2] ^ din[3] ^ din[5] ^ din[7] ^ din[11] ^ din[12] ^ din[21] ^ din[22] ^ din[23] ^ din[25] ^ din[27] ^ din[29] ^ din[30] ^ din[33] ^ din[36] ^ din[39] ^ din[40] ^ din[41] ^ din[42] ^ din[44] ^ din[46] ^ din[50] ^ din[52] ^ din[55] ^ din[56] ^ din[57] ^ din[59] ^ din[61];
+	crc_out[4] = crc_in[0] ^ crc_in[1] ^ crc_in[2] ^ crc_in[3] ^ crc_in[9] ^ crc_in[10] ^ crc_in[11] ^ crc_in[12] ^ crc_in[13] ^ crc_in[14] ^ crc_in[20] ^ crc_in[21] ^ din[0] ^ din[3] ^ din[6] ^ din[9] ^ din[10] ^ din[11] ^ din[13] ^ din[15] ^ din[16] ^ din[17] ^ din[18] ^ din[19] ^ din[24] ^ din[28] ^ din[40] ^ din[41] ^ din[42] ^ din[43] ^ din[49] ^ din[50] ^ din[51] ^ din[52] ^ din[53] ^ din[54] ^ din[60] ^ din[61];
+	crc_out[3] = crc_in[0] ^ crc_in[1] ^ crc_in[5] ^ crc_in[8] ^ crc_in[9] ^ crc_in[11] ^ crc_in[15] ^ crc_in[16] ^ crc_in[18] ^ crc_in[19] ^ crc_in[20] ^ crc_in[21] ^ din[0] ^ din[1] ^ din[3] ^ din[4] ^ din[5] ^ din[8] ^ din[10] ^ din[12] ^ din[13] ^ din[14] ^ din[19] ^ din[20] ^ din[21] ^ din[22] ^ din[23] ^ din[26] ^ din[27] ^ din[29] ^ din[32] ^ din[35] ^ din[38] ^ din[40] ^ din[41] ^ din[45] ^ din[48] ^ din[49] ^ din[51] ^ din[55] ^ din[56] ^ din[58] ^ din[59] ^ din[60] ^ din[61];
+	crc_out[2] = crc_in[0] ^ crc_in[2] ^ crc_in[4] ^ crc_in[5] ^ crc_in[7] ^ crc_in[8] ^ crc_in[12] ^ crc_in[13] ^ crc_in[14] ^ crc_in[16] ^ crc_in[17] ^ crc_in[19] ^ crc_in[20] ^ crc_in[21] ^ crc_in[23] ^ din[1] ^ din[7] ^ din[11] ^ din[12] ^ din[15] ^ din[16] ^ din[17] ^ din[25] ^ din[28] ^ din[29] ^ din[31] ^ din[32] ^ din[34] ^ din[35] ^ din[37] ^ din[38] ^ din[40] ^ din[42] ^ din[44] ^ din[45] ^ din[47] ^ din[48] ^ din[52] ^ din[53] ^ din[54] ^ din[56] ^ din[57] ^ din[59] ^ din[60] ^ din[61] ^ din[63];
+	crc_out[1] = crc_in[1] ^ crc_in[3] ^ crc_in[4] ^ crc_in[6] ^ crc_in[7] ^ crc_in[11] ^ crc_in[12] ^ crc_in[13] ^ crc_in[15] ^ crc_in[16] ^ crc_in[18] ^ crc_in[19] ^ crc_in[20] ^ crc_in[22] ^ crc_in[23] ^ din[0] ^ din[6] ^ din[10] ^ din[11] ^ din[14] ^ din[15] ^ din[16] ^ din[24] ^ din[27] ^ din[28] ^ din[30] ^ din[31] ^ din[33] ^ din[34] ^ din[36] ^ din[37] ^ din[39] ^ din[41] ^ din[43] ^ din[44] ^ din[46] ^ din[47] ^ din[51] ^ din[52] ^ din[53] ^ din[55] ^ din[56] ^ din[58] ^ din[59] ^ din[60] ^ din[62] ^ din[63];
+	crc_out[0] = crc_in[0] ^ crc_in[3] ^ crc_in[6] ^ crc_in[11] ^ crc_in[13] ^ crc_in[14] ^ crc_in[16] ^ crc_in[17] ^ crc_in[19] ^ crc_in[22] ^ din[0] ^ din[1] ^ din[2] ^ din[3] ^ din[4] ^ din[5] ^ din[10] ^ din[14] ^ din[16] ^ din[17] ^ din[18] ^ din[19] ^ din[20] ^ din[21] ^ din[22] ^ din[23] ^ din[27] ^ din[30] ^ din[33] ^ din[36] ^ din[39] ^ din[40] ^ din[43] ^ din[46] ^ din[51] ^ din[53] ^ din[54] ^ din[56] ^ din[57] ^ din[59] ^ din[62];
+
+    crc24a_update = crc_out;
+  end
+  endfunction
+
+
+  function [23:0] crc24b_update;
+    input [23:0]  crc_in;
+    input [W-1:0] din;
+    reg   [23:0]  crc_out;
+  begin
+   // Równania XOR wygenerowane offline odpowiadające CRC24B
+   crc_out[23] = crc_in[5] ^ crc_in[6] ^ crc_in[7] ^ crc_in[8] ^ crc_in[9] ^ crc_in[10] ^ crc_in[11] ^ crc_in[12] ^ crc_in[18] ^ crc_in[19] ^ crc_in[20] ^ crc_in[21] ^ crc_in[22] ^ din[0] ^ din[1] ^ din[2] ^ din[3] ^ din[4] ^ din[5] ^ din[6] ^ din[7] ^ din[8] ^ din[9] ^ din[10] ^ din[11] ^ din[12] ^ din[13] ^ din[14] ^ din[15] ^ din[16] ^ din[22] ^ din[23] ^ din[24] ^ din[25] ^ din[26] ^ din[27] ^ din[28] ^ din[29] ^ din[30] ^ din[31] ^ din[32] ^ din[33] ^ din[34] ^ din[45] ^ din[46] ^ din[47] ^ din[48] ^ din[49] ^ din[50] ^ din[51] ^ din[52] ^ din[58] ^ din[59] ^ din[60] ^ din[61] ^ din[62];
+	crc_out[22] = crc_in[4] ^ crc_in[12] ^ crc_in[17] ^ crc_in[22] ^ din[16] ^ din[21] ^ din[34] ^ din[44] ^ din[52] ^ din[57] ^ din[62];
+	crc_out[21] = crc_in[3] ^ crc_in[11] ^ crc_in[16] ^ crc_in[21] ^ din[15] ^ din[20] ^ din[33] ^ din[43] ^ din[51] ^ din[56] ^ din[61];
+	crc_out[20] = crc_in[2] ^ crc_in[10] ^ crc_in[15] ^ crc_in[20] ^ din[14] ^ din[19] ^ din[32] ^ din[42] ^ din[50] ^ din[55] ^ din[60];
+	crc_out[19] = crc_in[1] ^ crc_in[9] ^ crc_in[14] ^ crc_in[19] ^ din[13] ^ din[18] ^ din[31] ^ din[41] ^ din[49] ^ din[54] ^ din[59];
+	crc_out[18] = crc_in[0] ^ crc_in[8] ^ crc_in[13] ^ crc_in[18] ^ crc_in[23] ^ din[12] ^ din[17] ^ din[30] ^ din[40] ^ din[48] ^ din[53] ^ din[58] ^ din[63];
+	crc_out[17] = crc_in[7] ^ crc_in[12] ^ crc_in[17] ^ crc_in[22] ^ din[11] ^ din[16] ^ din[29] ^ din[39] ^ din[47] ^ din[52] ^ din[57] ^ din[62];
+	crc_out[16] = crc_in[6] ^ crc_in[11] ^ crc_in[16] ^ crc_in[21] ^ din[10] ^ din[15] ^ din[28] ^ din[38] ^ din[46] ^ din[51] ^ din[56] ^ din[61];
+	crc_out[15] = crc_in[5] ^ crc_in[10] ^ crc_in[15] ^ crc_in[20] ^ crc_in[23] ^ din[9] ^ din[14] ^ din[27] ^ din[37] ^ din[45] ^ din[50] ^ din[55] ^ din[60] ^ din[63];
+	crc_out[14] = crc_in[4] ^ crc_in[9] ^ crc_in[14] ^ crc_in[19] ^ crc_in[22] ^ din[8] ^ din[13] ^ din[26] ^ din[36] ^ din[44] ^ din[49] ^ din[54] ^ din[59] ^ din[62];
+	crc_out[13] = crc_in[3] ^ crc_in[8] ^ crc_in[13] ^ crc_in[18] ^ crc_in[21] ^ din[7] ^ din[12] ^ din[25] ^ din[35] ^ din[43] ^ din[48] ^ din[53] ^ din[58] ^ din[61];
+	crc_out[12] = crc_in[2] ^ crc_in[7] ^ crc_in[12] ^ crc_in[17] ^ crc_in[20] ^ din[6] ^ din[11] ^ din[24] ^ din[34] ^ din[42] ^ din[47] ^ din[52] ^ din[57] ^ din[60];
+	crc_out[11] = crc_in[1] ^ crc_in[6] ^ crc_in[11] ^ crc_in[16] ^ crc_in[19] ^ din[5] ^ din[10] ^ din[23] ^ din[33] ^ din[41] ^ din[46] ^ din[51] ^ din[56] ^ din[59];
+	crc_out[10] = crc_in[0] ^ crc_in[5] ^ crc_in[10] ^ crc_in[15] ^ crc_in[18] ^ din[4] ^ din[9] ^ din[22] ^ din[32] ^ din[40] ^ din[45] ^ din[50] ^ din[55] ^ din[58];
+	crc_out[9] = crc_in[4] ^ crc_in[9] ^ crc_in[14] ^ crc_in[17] ^ din[3] ^ din[8] ^ din[21] ^ din[31] ^ din[39] ^ din[44] ^ din[49] ^ din[54] ^ din[57];
+	crc_out[8] = crc_in[3] ^ crc_in[8] ^ crc_in[13] ^ crc_in[16] ^ din[2] ^ din[7] ^ din[20] ^ din[30] ^ din[38] ^ din[43] ^ din[48] ^ din[53] ^ din[56];
+	crc_out[7] = crc_in[2] ^ crc_in[7] ^ crc_in[12] ^ crc_in[15] ^ din[1] ^ din[6] ^ din[19] ^ din[29] ^ din[37] ^ din[42] ^ din[47] ^ din[52] ^ din[55];
+	crc_out[6] = crc_in[1] ^ crc_in[6] ^ crc_in[11] ^ crc_in[14] ^ din[0] ^ din[5] ^ din[18] ^ din[28] ^ din[36] ^ din[41] ^ din[46] ^ din[51] ^ din[54];
+	crc_out[5] = crc_in[0] ^ crc_in[6] ^ crc_in[7] ^ crc_in[8] ^ crc_in[9] ^ crc_in[11] ^ crc_in[12] ^ crc_in[13] ^ crc_in[18] ^ crc_in[19] ^ crc_in[20] ^ crc_in[21] ^ crc_in[22] ^ din[0] ^ din[1] ^ din[2] ^ din[3] ^ din[5] ^ din[6] ^ din[7] ^ din[8] ^ din[9] ^ din[10] ^ din[11] ^ din[12] ^ din[13] ^ din[14] ^ din[15] ^ din[16] ^ din[17] ^ din[22] ^ din[23] ^ din[24] ^ din[25] ^ din[26] ^ din[28] ^ din[29] ^ din[30] ^ din[31] ^ din[32] ^ din[33] ^ din[34] ^ din[35] ^ din[40] ^ din[46] ^ din[47] ^ din[48] ^ din[49] ^ din[51] ^ din[52] ^ din[53] ^ din[58] ^ din[59] ^ din[60] ^ din[61] ^ din[62];
+	crc_out[4] = crc_in[9] ^ crc_in[17] ^ crc_in[22] ^ din[3] ^ din[21] ^ din[26] ^ din[39] ^ din[49] ^ din[57] ^ din[62];
+	crc_out[3] = crc_in[8] ^ crc_in[16] ^ crc_in[21] ^ din[2] ^ din[20] ^ din[25] ^ din[38] ^ din[48] ^ din[56] ^ din[61];
+	crc_out[2] = crc_in[7] ^ crc_in[15] ^ crc_in[20] ^ din[1] ^ din[19] ^ din[24] ^ din[37] ^ din[47] ^ din[55] ^ din[60];
+	crc_out[1] = crc_in[6] ^ crc_in[14] ^ crc_in[19] ^ din[0] ^ din[18] ^ din[23] ^ din[36] ^ din[46] ^ din[54] ^ din[59];
+	crc_out[0] = crc_in[6] ^ crc_in[7] ^ crc_in[8] ^ crc_in[9] ^ crc_in[10] ^ crc_in[11] ^ crc_in[12] ^ crc_in[13] ^ crc_in[19] ^ crc_in[20] ^ crc_in[21] ^ crc_in[22] ^ crc_in[23] ^ din[0] ^ din[1] ^ din[2] ^ din[3] ^ din[4] ^ din[5] ^ din[6] ^ din[7] ^ din[8] ^ din[9] ^ din[10] ^ din[11] ^ din[12] ^ din[13] ^ din[14] ^ din[15] ^ din[16] ^ din[17] ^ din[23] ^ din[24] ^ din[25] ^ din[26] ^ din[27] ^ din[28] ^ din[29] ^ din[30] ^ din[31] ^ din[32] ^ din[33] ^ din[34] ^ din[35] ^ din[46] ^ din[47] ^ din[48] ^ din[49] ^ din[50] ^ din[51] ^ din[52] ^ din[53] ^ din[59] ^ din[60] ^ din[61] ^ din[62] ^ din[63];
+
+   crc24b_update = crc_out;
+  end
+  endfunction
+
+
+  function [15:0] crc16_update;
+    input [15:0]  crc_in;
+    input [W-1:0] din;
+    reg   [15:0]  crc_out;
+  begin
+   // Równania XOR odpowiadające CRC16.
+   crc_out[15] = crc_in[0] ^ crc_in[2] ^ crc_in[3] ^ crc_in[6] ^ crc_in[7] ^ crc_in[9] ^ crc_in[14] ^ crc_in[15] ^ din[3] ^ din[7] ^ din[10] ^ din[11] ^ din[18] ^ din[19] ^ din[21] ^ din[25] ^ din[26] ^ din[27] ^ din[31] ^ din[32] ^ din[34] ^ din[41] ^ din[47] ^ din[48] ^ din[50] ^ din[51] ^ din[54] ^ din[55] ^ din[57] ^ din[62] ^ din[63];
+	crc_out[14] = crc_in[1] ^ crc_in[2] ^ crc_in[5] ^ crc_in[6] ^ crc_in[8] ^ crc_in[13] ^ crc_in[14] ^ crc_in[15] ^ din[2] ^ din[6] ^ din[9] ^ din[10] ^ din[17] ^ din[18] ^ din[20] ^ din[24] ^ din[25] ^ din[26] ^ din[30] ^ din[31] ^ din[33] ^ din[40] ^ din[46] ^ din[47] ^ din[49] ^ din[50] ^ din[53] ^ din[54] ^ din[56] ^ din[61] ^ din[62] ^ din[63];
+	crc_out[13] = crc_in[0] ^ crc_in[1] ^ crc_in[4] ^ crc_in[5] ^ crc_in[7] ^ crc_in[12] ^ crc_in[13] ^ crc_in[14] ^ crc_in[15] ^ din[1] ^ din[5] ^ din[8] ^ din[9] ^ din[16] ^ din[17] ^ din[19] ^ din[23] ^ din[24] ^ din[25] ^ din[29] ^ din[30] ^ din[32] ^ din[39] ^ din[45] ^ din[46] ^ din[48] ^ din[49] ^ din[52] ^ din[53] ^ din[55] ^ din[60] ^ din[61] ^ din[62] ^ din[63];
+	crc_out[12] = crc_in[0] ^ crc_in[3] ^ crc_in[4] ^ crc_in[6] ^ crc_in[11] ^ crc_in[12] ^ crc_in[13] ^ crc_in[14] ^ crc_in[15] ^ din[0] ^ din[4] ^ din[7] ^ din[8] ^ din[15] ^ din[16] ^ din[18] ^ din[22] ^ din[23] ^ din[24] ^ din[28] ^ din[29] ^ din[31] ^ din[38] ^ din[44] ^ din[45] ^ din[47] ^ din[48] ^ din[51] ^ din[52] ^ din[54] ^ din[59] ^ din[60] ^ din[61] ^ din[62] ^ din[63];
+	crc_out[11] = crc_in[0] ^ crc_in[5] ^ crc_in[6] ^ crc_in[7] ^ crc_in[9] ^ crc_in[10] ^ crc_in[11] ^ crc_in[12] ^ crc_in[13] ^ crc_in[15] ^ din[6] ^ din[10] ^ din[11] ^ din[14] ^ din[15] ^ din[17] ^ din[18] ^ din[19] ^ din[22] ^ din[23] ^ din[25] ^ din[26] ^ din[28] ^ din[30] ^ din[31] ^ din[32] ^ din[34] ^ din[37] ^ din[41] ^ din[43] ^ din[44] ^ din[46] ^ din[48] ^ din[53] ^ din[54] ^ din[55] ^ din[57] ^ din[58] ^ din[59] ^ din[60] ^ din[61] ^ din[63];
+	crc_out[10] = crc_in[4] ^ crc_in[5] ^ crc_in[6] ^ crc_in[8] ^ crc_in[9] ^ crc_in[10] ^ crc_in[11] ^ crc_in[12] ^ crc_in[14] ^ crc_in[15] ^ din[5] ^ din[9] ^ din[10] ^ din[13] ^ din[14] ^ din[16] ^ din[17] ^ din[18] ^ din[21] ^ din[22] ^ din[24] ^ din[25] ^ din[27] ^ din[29] ^ din[30] ^ din[31] ^ din[33] ^ din[36] ^ din[40] ^ din[42] ^ din[43] ^ din[45] ^ din[47] ^ din[52] ^ din[53] ^ din[54] ^ din[56] ^ din[57] ^ din[58] ^ din[59] ^ din[60] ^ din[62] ^ din[63];
+	crc_out[9] = crc_in[3] ^ crc_in[4] ^ crc_in[5] ^ crc_in[7] ^ crc_in[8] ^ crc_in[9] ^ crc_in[10] ^ crc_in[11] ^ crc_in[13] ^ crc_in[14] ^ din[4] ^ din[8] ^ din[9] ^ din[12] ^ din[13] ^ din[15] ^ din[16] ^ din[17] ^ din[20] ^ din[21] ^ din[23] ^ din[24] ^ din[26] ^ din[28] ^ din[29] ^ din[30] ^ din[32] ^ din[35] ^ din[39] ^ din[41] ^ din[42] ^ din[44] ^ din[46] ^ din[51] ^ din[52] ^ din[53] ^ din[55] ^ din[56] ^ din[57] ^ din[58] ^ din[59] ^ din[61] ^ din[62];
+	crc_out[8] = crc_in[2] ^ crc_in[3] ^ crc_in[4] ^ crc_in[6] ^ crc_in[7] ^ crc_in[8] ^ crc_in[9] ^ crc_in[10] ^ crc_in[12] ^ crc_in[13] ^ crc_in[15] ^ din[3] ^ din[7] ^ din[8] ^ din[11] ^ din[12] ^ din[14] ^ din[15] ^ din[16] ^ din[19] ^ din[20] ^ din[22] ^ din[23] ^ din[25] ^ din[27] ^ din[28] ^ din[29] ^ din[31] ^ din[34] ^ din[38] ^ din[40] ^ din[41] ^ din[43] ^ din[45] ^ din[50] ^ din[51] ^ din[52] ^ din[54] ^ din[55] ^ din[56] ^ din[57] ^ din[58] ^ din[60] ^ din[61] ^ din[63];
+	crc_out[7] = crc_in[1] ^ crc_in[2] ^ crc_in[3] ^ crc_in[5] ^ crc_in[6] ^ crc_in[7] ^ crc_in[8] ^ crc_in[9] ^ crc_in[11] ^ crc_in[12] ^ crc_in[14] ^ crc_in[15] ^ din[2] ^ din[6] ^ din[7] ^ din[10] ^ din[11] ^ din[13] ^ din[14] ^ din[15] ^ din[18] ^ din[19] ^ din[21] ^ din[22] ^ din[24] ^ din[26] ^ din[27] ^ din[28] ^ din[30] ^ din[33] ^ din[37] ^ din[39] ^ din[40] ^ din[42] ^ din[44] ^ din[49] ^ din[50] ^ din[51] ^ din[53] ^ din[54] ^ din[55] ^ din[56] ^ din[57] ^ din[59] ^ din[60] ^ din[62] ^ din[63];
+	crc_out[6] = crc_in[0] ^ crc_in[1] ^ crc_in[2] ^ crc_in[4] ^ crc_in[5] ^ crc_in[6] ^ crc_in[7] ^ crc_in[8] ^ crc_in[10] ^ crc_in[11] ^ crc_in[13] ^ crc_in[14] ^ din[1] ^ din[5] ^ din[6] ^ din[9] ^ din[10] ^ din[12] ^ din[13] ^ din[14] ^ din[17] ^ din[18] ^ din[20] ^ din[21] ^ din[23] ^ din[25] ^ din[26] ^ din[27] ^ din[29] ^ din[32] ^ din[36] ^ din[38] ^ din[39] ^ din[41] ^ din[43] ^ din[48] ^ din[49] ^ din[50] ^ din[52] ^ din[53] ^ din[54] ^ din[55] ^ din[56] ^ din[58] ^ din[59] ^ din[61] ^ din[62];
+	crc_out[5] = crc_in[0] ^ crc_in[1] ^ crc_in[3] ^ crc_in[4] ^ crc_in[5] ^ crc_in[6] ^ crc_in[7] ^ crc_in[9] ^ crc_in[10] ^ crc_in[12] ^ crc_in[13] ^ din[0] ^ din[4] ^ din[5] ^ din[8] ^ din[9] ^ din[11] ^ din[12] ^ din[13] ^ din[16] ^ din[17] ^ din[19] ^ din[20] ^ din[22] ^ din[24] ^ din[25] ^ din[26] ^ din[28] ^ din[31] ^ din[35] ^ din[37] ^ din[38] ^ din[40] ^ din[42] ^ din[47] ^ din[48] ^ din[49] ^ din[51] ^ din[52] ^ din[53] ^ din[54] ^ din[55] ^ din[57] ^ din[58] ^ din[60] ^ din[61];
+	crc_out[4] = crc_in[4] ^ crc_in[5] ^ crc_in[7] ^ crc_in[8] ^ crc_in[11] ^ crc_in[12] ^ crc_in[14] ^ din[4] ^ din[8] ^ din[12] ^ din[15] ^ din[16] ^ din[23] ^ din[24] ^ din[26] ^ din[30] ^ din[31] ^ din[32] ^ din[36] ^ din[37] ^ din[39] ^ din[46] ^ din[52] ^ din[53] ^ din[55] ^ din[56] ^ din[59] ^ din[60] ^ din[62];
+	crc_out[3] = crc_in[3] ^ crc_in[4] ^ crc_in[6] ^ crc_in[7] ^ crc_in[10] ^ crc_in[11] ^ crc_in[13] ^ din[3] ^ din[7] ^ din[11] ^ din[14] ^ din[15] ^ din[22] ^ din[23] ^ din[25] ^ din[29] ^ din[30] ^ din[31] ^ din[35] ^ din[36] ^ din[38] ^ din[45] ^ din[51] ^ din[52] ^ din[54] ^ din[55] ^ din[58] ^ din[59] ^ din[61];
+	crc_out[2] = crc_in[2] ^ crc_in[3] ^ crc_in[5] ^ crc_in[6] ^ crc_in[9] ^ crc_in[10] ^ crc_in[12] ^ din[2] ^ din[6] ^ din[10] ^ din[13] ^ din[14] ^ din[21] ^ din[22] ^ din[24] ^ din[28] ^ din[29] ^ din[30] ^ din[34] ^ din[35] ^ din[37] ^ din[44] ^ din[50] ^ din[51] ^ din[53] ^ din[54] ^ din[57] ^ din[58] ^ din[60];
+	crc_out[1] = crc_in[1] ^ crc_in[2] ^ crc_in[4] ^ crc_in[5] ^ crc_in[8] ^ crc_in[9] ^ crc_in[11] ^ din[1] ^ din[5] ^ din[9] ^ din[12] ^ din[13] ^ din[20] ^ din[21] ^ din[23] ^ din[27] ^ din[28] ^ din[29] ^ din[33] ^ din[34] ^ din[36] ^ din[43] ^ din[49] ^ din[50] ^ din[52] ^ din[53] ^ din[56] ^ din[57] ^ din[59];
+	crc_out[0] = crc_in[0] ^ crc_in[1] ^ crc_in[3] ^ crc_in[4] ^ crc_in[7] ^ crc_in[8] ^ crc_in[10] ^ crc_in[15] ^ din[0] ^ din[4] ^ din[8] ^ din[11] ^ din[12] ^ din[19] ^ din[20] ^ din[22] ^ din[26] ^ din[27] ^ din[28] ^ din[32] ^ din[33] ^ din[35] ^ din[42] ^ din[48] ^ din[49] ^ din[51] ^ din[52] ^ din[55] ^ din[56] ^ din[58] ^ din[63];
+
+   crc16_update = crc_out;
+  end
+  endfunction
+
+
+  // ============================================================================
+  // Selekcja wariantu CRC w zależności od parametru L.
+  // Dla L==248 wybierany jest wariant CRC24B (24-bitowy stan).
+  // ============================================================================
+  generate
+    if (L == 24) begin : g_crc24a
+      wire [23:0] out24a;
+      assign out24a   = crc24a_update(crc[23:0], data);
+      assign crc_next = out24a;
+
+    end else if (L == 16) begin : g_crc16
+      wire [15:0] out16;
+      assign out16   = crc16_update(crc[15:0], data);
+      assign crc_next = out16;
+
+    end else if (L == 248) begin : g_crc24b
+      wire [23:0] out24b;
+      assign out24b   = crc24b_update(crc[23:0], data);
+      assign crc_next = out24b;
+
+    end else begin : g_badM
+      // Parametr poza zakresem -> błąd podczas elaboracji/symulacji
+      initial begin
+        $error("crc_update_combo: Nieobsługiwane M=%0d (dozwolone 16 lub 24)", L);
+      end
+      assign crc_next = {L{1'b0}};
+    end
+  endgenerate
+
+endmodule

@@ -1,0 +1,287 @@
+// rtl/crc_parallel.v
+//
+//
+//	Moduł generujący CRC dla TB w wersji parallel
+//
+
+// Strumień równoległy po W bitów.
+// - Dane wejściowe lecą 1:1 na wyjście.
+// - Po ostatnim słowie danych dokładane są bity CRC (razem L bitów) w paczkach po W.
+//
+
+
+`timescale 1ns/1ps
+
+module crc_tb_parallel(
+  input  wire clk,
+  input  wire rst,          			// synchroniczny reset do 0
+  input  wire [15:0] in_tb_len,     	// długość TB
+  
+  // Strumień wejściowy
+  input  wire 			 in_valid,
+  input  wire [63:0]  in_chunk,
+  input  wire 			 in_last,      // =1 przy ostatnim bicie DANYCH
+  
+  // Strumień wyjściowy
+  output reg  			out_valid,
+  output reg [63:0]  out_chunk,
+  output reg  			out_last,
+  output reg [7:0]  	out_padding,
+  output reg [15:0]	out_tb_len
+);
+
+
+	// ============================== FSM / rejestry CRC ====================================
+	localparam [7:0] W 		  = 8'd64;                 // szerokość słowa danych
+	localparam [1:0] S_IDLE   = 2'd0;
+	localparam [1:0] S_DATA   = 2'd1;
+	localparam [1:0] S_APPEND = 2'd2;
+	localparam [1:0] S_SERIAL = 2'd3;
+	
+	
+	wire          use_crc24 	= (in_tb_len > 16'd3824);     	//which CRC 
+	wire  [5:0]   crc_len   	= use_crc24 ? 6'd24 : 6'd16;	   // used  CRC length
+	wire  [5:0]   rem       	= in_tb_len[5:0];       				//Division reminder (tb_len % W)
+	wire  [6:0]   lcs       	= (rem==0) ? 7'd64 : {1'b0,rem}; //Last chunk size
+	wire  [7:0]   sum       	= lcs+crc_len;							//auxiliary variable for padding
+	wire  [7:0]   padding_cnt  = (sum <= 8'd64) ? (8'd64 - sum) : (8'd128 - sum);  // padding count  
+	
+	reg           use_crc24_r;
+	reg   [7:0]   lcs_r,padding_cnt_r;
+
+	reg   [1:0]   state;					// status FSM
+	
+	reg   [23:0] crc24;               // current crc24a
+	wire  [23:0] crc24_next;				// next    crc24a
+	
+	reg   [15:0] crc16;               // current crc16
+	wire  [15:0] crc16_next;				// next    crc16
+	
+	// sygnały dla szeregowego modułu CRC
+	reg	        serial_in;
+	reg	[W-1:0] serial_in_reg;
+	reg			  serial_in_valid;
+	reg			  serial_in_last;
+	
+	wire 			  ser24_valid, ser24_bit, ser24_last;
+	wire 			  ser16_valid, ser16_bit, ser16_last;
+	
+	wire 			  serial_out_valid_sel = use_crc24_r ? ser24_valid : ser16_valid;
+	wire 			  serial_out_sel       = use_crc24_r ? ser24_bit   : ser16_bit;
+	wire 			  serial_out_last_sel  = use_crc24_r ? ser24_last  : ser16_last;
+	
+	reg			  serial_out_last_seen;
+	reg	[W-1:0] serial_out_reg; 
+	reg			  serial_crc_enable;
+	reg			  serial_rst;
+	
+	//licznik pomocniczny
+	reg   [7:0]	  cnt;
+	
+	crc_serial #(.L(24)) crc_serial_24 (
+    .clk       (clk),
+    .rst       (serial_rst),
+    .in_valid  (serial_in_valid),
+    .in_bit    (serial_in),
+    .in_last   (serial_in_last),
+	 .custom_crc (crc24),
+	 .custom_crc_valid (serial_crc_enable),
+    .out_valid (ser24_valid),
+    .out_bit   (ser24_bit),
+    .out_last  (ser24_last)
+  );
+  
+   crc_serial #(.L(16)) crc_serial_16 (
+    .clk       (clk),
+    .rst       (serial_rst),
+    .in_valid  (serial_in_valid),
+    .in_bit    (serial_in),
+    .in_last   (serial_in_last),
+	 .custom_crc (crc16),
+	 .custom_crc_valid (serial_crc_enable),
+    .out_valid (ser16_valid),
+    .out_bit   (ser16_bit),
+    .out_last  (ser16_last)
+   );
+  
+  // Używamy dostarczonego modułu równoległego liczenia CRC.
+  crc_update #(
+    .L(24),
+    .W(W)
+  ) crc_update_24 (
+    .crc      (crc24),
+    .data     (in_chunk),     // MSB-first
+    .crc_next (crc24_next)
+  );
+  
+  // Używamy dostarczonego modułu równoległego liczenia CRC.
+  crc_update #(
+    .L(16),
+    .W(W)
+  ) crc_update_16 (
+    .crc      (crc16),
+    .data     (in_chunk),     // MSB-first
+    .crc_next (crc16_next)
+  );
+  
+  
+
+  // ============================== Sekwencja ==============================================
+  always @(posedge clk) begin
+    if (~rst) begin
+      out_valid <= 1'b0;
+      out_chunk   <= {W{1'b0}};
+      out_last  <= 1'b0;
+		out_padding  <= 8'b0;
+		out_tb_len  <= 16'b0;
+		
+		state      		<= S_IDLE;
+		crc24      		<= 24'b0;
+		crc16       	<= 16'b0;
+		use_crc24_r 	<= 1'b0;
+		lcs_r       	<= 7'b0;  
+		padding_cnt_r  <= 8'b0;
+		
+		serial_in 		 <= 1'b0;
+		serial_in_reg   <= {W{1'b0}};
+		serial_in_valid <=1'b0;
+		serial_in_last  <=1'b0;
+		
+		serial_out_reg  <= {W{1'b0}};
+		serial_out_last_seen <=1'b0;
+		serial_crc_enable <=1'b0;
+		serial_rst     <= 1'b0;
+		cnt				<= 8'b0;
+		
+		
+    end else begin
+      // domyślnie brak wyjścia
+      out_valid 	<= 1'b0;
+      out_chunk   <= {W{1'b0}};
+      out_last  	<= 1'b0;
+		serial_crc_enable <=1'b0;
+
+      case (state)
+        // ------------------------------ IDLE ---------------------------------
+        S_IDLE: begin
+          crc24 <= {24{1'b0}};          // start każdej ramki od zera
+			 crc16 <= {16{1'b0}};          // start każdej ramki od zera
+          if (in_valid) begin
+				
+				use_crc24_r 	<= use_crc24;
+				lcs_r       	<= lcs;
+				padding_cnt_r  <= padding_cnt;
+				out_tb_len		<= in_tb_len;
+				out_padding <= padding_cnt;
+				
+				if (in_last) begin
+					if (lcs==W) begin
+						out_valid <= 1'b1;
+						out_chunk   <= in_chunk;
+						state       <= S_APPEND;
+					end else begin
+						serial_in_reg <= in_chunk;
+						serial_crc_enable <= 1'b1;
+						cnt <= 8'b0;
+						serial_rst <= 1'b1;
+						state 	<= S_SERIAL;
+					end
+				end else begin
+					if(use_crc24) begin
+						crc24 <= crc24_next;
+					end else begin
+						crc16 <= crc16_next;
+					end
+					state  <= S_DATA;
+				end
+          end
+        end
+
+        // ------------------------------ DATA ---------------------------------
+        S_DATA: begin
+          if (in_valid) begin
+				if (in_last) begin
+					if (lcs_r==W) begin
+						out_valid <= 1'b1;
+						out_chunk   <= in_chunk;
+						if(use_crc24_r) begin
+							crc24 <= crc24_next;
+						end else begin
+							crc16 <= crc16_next;
+						end
+						state       <= S_APPEND;
+					end else begin
+						serial_in_reg <= in_chunk;
+						serial_crc_enable <= 1'b1;
+						cnt <= 8'b0;
+						serial_rst <= 1'b1;
+						state 	<= S_SERIAL;
+					end
+				end else begin
+					out_valid <= 1'b1;
+					out_chunk   <= in_chunk;
+					if(use_crc24_r) begin
+						crc24 <= crc24_next;
+					end else begin
+						crc16 <= crc16_next;
+					end
+				end
+          end
+        end
+
+        // ------------------------------ APPEND (emituj p0..p(L-1)) ----------
+        S_APPEND: begin
+			 
+			 out_valid <= 1'b1;
+			 out_last <= 1'b1;     // ostatni bit całej ramki
+			 if(use_crc24_r) begin
+				out_chunk   <= {crc24,{40{1'b0}}};
+          end else begin
+				out_chunk   <= {crc16,{48{1'b0}}};
+			 end
+          
+			 state    <= S_IDLE;   // gotowi na nową ramkę
+			 out_padding  <= 8'b0;
+        end
+		  
+		  //------------------------------ SERIAL (Dolicz CRC szeregowo) ----------
+		  S_SERIAL: begin
+			
+			if (cnt == lcs_r-1) begin
+				serial_in_last <= 1'b1;
+			end
+			serial_in_valid <= 1'b1;
+			serial_in <= serial_in_reg[W-1];
+			if (cnt == W+2) begin
+				out_valid <= 1'b1;
+				out_chunk <= serial_out_reg;
+			end
+			if (serial_out_valid_sel) begin
+				serial_out_reg <= {serial_out_reg[W-2:0],serial_out_sel};
+			end
+			
+			if (serial_out_last_sel==1)begin
+				serial_out_last_seen <= 1'b1;
+			end
+			
+			if (serial_out_last_seen==1) begin
+				out_valid <= 1'b1;
+				out_last	 <= 1'b1;
+				out_chunk <= serial_out_reg << padding_cnt_r;
+				serial_crc_enable <= 1'b0;
+				serial_in_valid <= 1'b0;
+				serial_rst <= 1'b0;
+				state <= S_IDLE;
+			end
+			serial_in_reg <= {serial_in_reg[W-2:0],1'b0};
+			cnt <= cnt + 1'b1;
+					
+		  end
+        default: begin
+          state <= S_IDLE;
+        end
+      endcase
+    end
+  end
+
+endmodule

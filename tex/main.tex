@@ -1,0 +1,203 @@
+% !TeX spellcheck = pl_PL
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                        %
+% Szablon pracy dyplomowej inzynierskiej %
+% zgodny  z~aktualnymi  przepisami  SZJK %
+%                                        %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                        %
+%  (c) Krzysztof Simiński, 2018-2023     %
+%                                        %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                        %
+% Najnowsza wersja szablonów jest        %
+% podstępna pod adresem                  %
+% github.com/ksiminski/polsl-aei-theses  %
+%                                        %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%
+% Projekt LaTeXowy zapewnia odpowiednie formatowanie pracy,
+% zgodnie z~wymaganiami Systemu zapewniania jakości kształcenia.
+% Proszę nie zmieniać ustawień formatowania (np. fontu,
+% marginesów, wytłuszczeń, kursywy itd. ).
+%
+% Projekt można kompilować na kilka sposobów.
+%
+% 1. kompilacja pdfLaTeX
+%
+% pdflatex main
+% bibtex   main
+% pdflatex main
+% pdflatex main
+%
+%
+% 2. kompilacja XeLaTeX
+%
+% Kompilatacja przy użyciu XeLaTeXa różni się tym, że na stronie
+% tytułowej używany jest font Calibri. Wymaga to jego uprzedniego
+% zainstalowania.
+%
+% xelatex main
+% bibtex  main
+% xelatex main
+% xelatex main
+%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% W przypadku pytań, uwag, proszę pisać na adres:   %
+%      krzysztof.siminski(małpa)polsl.pl            %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Chcemy ulepszać szablony LaTeXowe prac dyplomowych.
+% Wypełniając ankietę spod poniższego adresu pomogą
+% Państwo nam to zrobić. Ankieta jest całkowicie
+% anonimowa. Dziękujemy!
+
+
+% https://docs.google.com/forms/d/e/1FAIpQLScyllVxNKzKFHfILDfdbwC-jvT8YL0RSTFs-s27UGw9CKn-fQ/viewform?usp=sf_link
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                             %
+% PERSONALIZACJA PRACY – DANE PRACY           %
+%                                             %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Proszę wpisać swoje dane w~poniższych definicjach.
+
+% TODO
+% dane autora
+\newcommand{\FirstNameAuthor}{Krzysztof}
+\newcommand{\SurnameAuthor}{Wojtasik}
+\newcommand{\IdAuthor}{300964}   % numer albumu  (bez $\langle$ i~$\rangle$)
+
+% drugi autor:
+%\newcommand{\FirstNameCoauthor}{Imię}   % Jeżeli jest drugi autor, to tutaj należy podać imię.
+%\newcommand{\SurnameCoauthor}{Nazwisko} % Jeżeli jest drugi autor, to tutaj należy podać nazwisko.
+%\newcommand{\IdCoauthor}{$\langle$wpisać właściwy$\rangle$}  % numer albumu drugiego autora (bez $\langle$ i~$\rangle$)
+% Gdy nie ma drugiego autora, należy zostawić poniższe definicje puste, jak poniżej. Gdy jest drugi autor, należy zakomentować te linie.
+\newcommand{\FirstNameCoauthor}{} % Jeżeli praca ma tylko jednego autora, to dane drugiego autora zostają puste.
+\newcommand{\SurnameCoauthor}{}   % Jeżeli praca ma tylko jednego autora, to dane drugiego autora zostają puste.
+\newcommand{\IdCoauthor}{}  % Jeżeli praca ma tylko jednego autora, to dane drugiego autora zostają puste.
+%%%%%%%%%%
+
+\newcommand{\Supervisor}{dr hab. inż., prof. PŚ Wojciech Sułek}     % dane promotora (bez $\langle$ i~$\rangle$)
+\newcommand{\Title}{Wybrane elementy kanału PDSCH systemu 5G NR modelowane w~języku opisu sprzętu}           % tytuł pracy po polsku
+\newcommand{\TitleAlt}{Selected Elements of the 5G NR PDSCH Channel Modeled in a~Hardware Description Language}                     % thesis title in English
+\newcommand{\Program}{Teleinformatyka}    % kierunek studiów  (bez $\langle$ i~$\rangle$)
+\newcommand{\Specialisation}{}     % specjalność  (bez $\langle$ i~$\rangle$)
+\newcommand{\Departament}{Telekomunikacji i~Teleinformatyki}        % katedra promotora  (bez $\langle$ i~$\rangle$)
+
+% Jeżeli został wyznaczony promotor pomocniczy lub opiekun, proszę go/ją wpisać ...
+\newcommand{\Consultant}{} % dane promotora pomocniczego, opiekuna (bez $\langle$ i~$\rangle$)
+% ... w~przeciwnym razie proszę zostawić puste miejsce jak poniżej:
+%\newcommand{\Consultant}{} % brak promotowa pomocniczego / opiekuna
+
+% koniec fragmentu do modyfikacji
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                                             %
+% KONIEC PERSONALIZACJI PRACY                 %
+%                                             %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\input{config/settings.tex} % Proszę nie modyfikować pliku settings.tex
+
+\input{config/my-settings.tex} % Tutaj proszę umieścić swoje pakiety, makra, ustawienia itd.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\begin{document}
+%\kslistofremarks
+
+\frontmatter
+\input{config/titlepage.tex}  % Proszę nie modyfikować pliku titlepage.tex
+
+\cleardoublepage
+
+\rmfamily\normalfont
+\pagestyle{empty}
+
+
+%%% No to zaczynamy pisać pracę :-) %%%%
+
+% TODO
+\input{chapters/00.tex} % informacje redakcyjne
+
+
+%%%%%%%%%%%%%%%%%% SPIS TRESCI %%%%%%%%%%%%%%%%%%%%%%
+% Add \thispagestyle{empty} to the toc file (main.toc), because \pagestyle{empty} doesn't work if the TOC has multiple pages
+\addtocontents{toc}{\protect\thispagestyle{empty}}
+\tableofcontents
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\setcounter{stronyPozaNumeracja}{\value{page}}
+\mainmatter
+\pagestyle{empty}
+
+\cleardoublepage
+
+\pagestyle{NumeryStronNazwyRozdzialow}
+
+%%%%%%%%%%%%%% wlasciwa tresc pracy %%%%%%%%%%%%%%%%%
+
+% TODO
+\input{chapters/01.tex}  % wstęp
+
+% TODO
+\input{chapters/02.tex} % analiza tematu
+
+% TODO
+\input{chapters/03.tex} % Wymagania i~narzędzia
+
+% TODO
+\input{chapters/04.tex} % [Właściwy dla kierunku -- np. Specyfikacja zewnętrzna]
+
+% TODO
+%\input{chapters/05.tex} % [Właściwy dla kierunku -- np. Specyfikacja wewnętrzna]
+
+% TODO
+\input{chapters/06.tex} % Weryfikacja i~walidacja
+
+% TODO
+\input{chapters/07.tex} % Podsumowanie i~wnioski
+
+\backmatter
+
+\cleardoublepage
+\phantomsection
+%\bibliographystyle{plplain}  % bibtex
+%\bibliography{biblio} % bibtex
+\addcontentsline{toc}{chapter}{Bibliografia}
+\printbibliography           % biblatex
+
+\begin{appendices}
+
+% TODO
+\input{chapters/08.tex} % Spis skrótów i~symboli
+
+% TODO
+\input{chapters/09.tex} % Źródła
+
+% TODO
+\input{chapters/10.tex} % Lista dodatkowych plików, uzupełniających tekst pracy
+
+\listoffigures
+\addcontentsline{toc}{chapter}{Spis rysunków}
+\listoftables
+\addcontentsline{toc}{chapter}{Spis tabel}
+
+\end{appendices}
+
+\end{document}
+
+
+%% Finis coronat opus.
+

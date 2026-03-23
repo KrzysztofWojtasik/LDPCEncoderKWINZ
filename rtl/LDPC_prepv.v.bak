@@ -1,0 +1,530 @@
+`timescale 1ns/1ps
+
+module LDPC_prep(
+  input  wire 			  clk,
+  input  wire 			  rst,          // synchroniczny reset do 0
+  
+  // Strumień wejściowy
+  input  wire [15:0]   tb_len,    // TB length
+  
+  input  wire 			  in_valid,
+  input  wire [63:0]   in_chunk,
+  input  wire 			  in_last,      // =1 przy ostatnim bicie DANYCH
+  
+  
+  // Strumień wyjściowy
+  output reg  			out_valid,
+  output reg [63:0]  out_chunk,
+  output reg  			out_last_chunk,
+  output reg  			out_last_cb,
+  output reg [15:0]  out_filler_num,
+  output reg [15:0]  out_k,
+  output reg [8:0]	out_zc,
+  output reg 			out_bg
+  
+  
+);
+	// Params
+   localparam [7:0]	 W 						= 64;                 		// szerokość słowa danych
+	
+	//FSM 1, STORE TB
+	localparam [1:0] 	 MEM_IDLE		 		= 2'd0;
+	localparam [1:0] 	 MEM_COLLECTING		= 2'd1;
+	localparam [1:0] 	 MEM_FINISHING		  	= 2'd2;
+	
+	//FSM 2, CALC LDPC PARAMS
+	localparam [2:0] 	 S_IDLE   	 			= 3'd0;
+	localparam [2:0] 	 S_PREP_CB_COUNT  	= 3'd1;
+	localparam [2:0] 	 S_CALC_CB_COUNT  	= 3'd2;
+	localparam [2:0] 	 S_PREP_KCB		  		= 3'd3;
+	localparam [2:0] 	 S_CALC_KCB 		  	= 3'd4;
+	localparam [2:0] 	 S_PREP_ZC_MIN	  		= 3'd5;
+	localparam [2:0] 	 S_CALC_ZC_MIN 	 	= 3'd6;
+	
+	//FSM 3, PREP CB --> CRC AND FILLER --> OUT
+	localparam [2:0] 	 CB_IDLE   			= 3'd0;
+	localparam [2:0] 	 CB_PREP_WINDOW   = 3'd1;
+	localparam [2:0] 	 CB_CRC    			= 3'd2;
+	localparam [2:0] 	 CB_OUT 	  			= 3'd3;
+	localparam [2:0] 	 CB_OUT_TB 			= 3'd4;
+	
+	
+	// TB RAM (buffer)
+	
+	reg  [63:0] tb_mem [0:1023]; // memory
+	reg  [9:0]  wr_addr;			  // memory address
+	reg  [9:0]  rd_addr;
+	reg  [63:0] rd_data;
+	reg			rd_rdy;
+	reg  [9:0]  tb_words;        // how many words have been already written
+	reg  [9:0]  tb_last_addr;    // address of last tb chunk
+	reg  [7:0]	tb_last_length;  // Data part of last chunk (without padding)
+	
+	//auxiliary registers
+	reg   [15:0]  tb_len_r;
+	
+	reg   [1:0]   	state_fsm1;
+	reg			  	tb_stored;	  									// flag 
+	reg   [2:0]   	state_fsm2;
+	reg			  	params_calc;	  									//flag
+	wire			  	tb_ready = tb_stored && params_calc;		//flag
+	reg 	[2:0]	  	state_fsm3;
+	reg	[3:0]	  	cb_num;
+	reg	[15:0]  	emitt_bits;										// cb bits already emitted
+	reg 	[7:0]	  	taken_bits;										// bits already taken from that word
+	reg	[W-1:0]	w0;													// Helpers for stitching																							
+	
+	// LDPC PARAMS
+	wire          tb_crc24 	  = (tb_len_r > 16'd3824) ? 1'b1 : 1'b0;             				 // Which TB CRC was used 
+	wire  [5:0]   tb_crc_len  = tb_crc24 ? 6'd24 : 6'd16;   											 // Length of CRC used for TB (24b/16b) 
+	wire  [15:0]  b   		  = tb_len_r + tb_crc_len;         										 // Length of TB with  CRC (TB+24 || TB+16)
+	wire  		  bg          = tb_crc24;							 										 // Base Graph choice (1 = Base graph 1, 0 = Base Graph 2)
+	wire  [13:0]  kcb_max	  = bg ? 14'd8448 : 14'd3840;    										 // Maxium number of bits per CB based on graph (8448 || 3840)
+	reg   [8:0]   cb_count;	  																					 // Number of CBs (ceil(B/(kcb_max-24))
+	reg   [15:0]  bc;   		  																					 // Length of TB + TB_CRC + CB_CRC
+	reg   [15:0]  kcb;																					 		 // Number of (TB bits + CB CRC bits) in CB (ceil(bc/cb_count)).
+	wire  [4:0]   kb          = bg ? 5'd22 :																 // Number of data blocks in single CB
+															(b>640) ? 5'd10 : 
+																				  (b>560) ? 5'd9 : 
+																										(b>192) ? 5'd8 : 5'd6; 
+	reg 	[8:0]	  zc_min;																						 //ceil(kcb/kb)
+	reg   [8:0]   zc;  																							 //actual zc
+	reg 	[15:0]  k;																								 //final number of bits in each CB (zc*kb)
+	
+	
+	
+	
+	// Ceil module
+	reg	 		  ceil_rst;
+	reg			  ceil_enable;
+	reg	[15:0]  ceil_num;
+	reg	[15:0]  ceil_den;
+	wire	[15:0]  ceil_result;
+	wire			  ceil_valid;
+	wire  [15:0]  ceil_reminder;
+	
+	
+	Ceil u_Ceil (
+    .clk       	(clk),
+    .rst       	(ceil_rst),
+	 .enable			(ceil_enable),
+	 .num				(ceil_num),
+	 .den				(ceil_den),
+	 .ceil			(ceil_result),
+	 .result_valid (ceil_valid),
+	 .reminder 		(ceil_reminder)
+  );
+
+	reg				crc_rst;
+	reg				crc_in_valid;
+	reg	[15:0]	crc_cb_len;
+	reg	[63:0]	crc_in_chunk;
+	reg				crc_in_last;
+	wire				crc_out_valid;
+	wire 	[63:0]	crc_out_chunk;
+	wire				crc_out_last;
+	wire	[7:0]		crc_padding;
+	
+	crc_cb_parallel crc (
+	 .clk				(clk),
+	 .rst          (crc_rst),
+	 .cb_len       (crc_cb_len),
+    .in_valid		(crc_in_valid),
+	 .in_chunk		(crc_in_chunk),
+	 .in_last		(crc_in_last),
+    .out_valid		(crc_out_valid),
+	 .out_chunk		(crc_out_chunk),
+	 .out_last		(crc_out_last),
+	 .padding		(crc_padding)
+	);
+	
+	
+	always @(posedge clk) begin
+		if (~rst) begin
+// ---------------- OUTPUTS ----------------
+		 out_valid       <= 1'b0;
+		 out_chunk       <= {W{1'b0}};
+		 out_last_chunk  <= 1'b0;
+		 out_last_cb     <= 1'b0;
+		 out_filler_num  <= 16'd0;
+		 out_k           <= 16'd0;
+	
+// ---------------- TB RAM / FLAGS ----------------
+		 wr_addr       <= 10'd0;
+		 rd_addr			<= 10'd0;
+		 rd_data			<= 64'b0;
+		 rd_rdy			<= 1'b0;
+		 tb_words      <= 10'd0;
+		 tb_last_addr  <= 10'd0;
+		 tb_last_length<= 8'd0;
+		 tb_stored     <= 1'b0;
+	
+// ---------------- LDPC PARAMS ----------------
+		 tb_len_r     <= 16'd0;
+	
+		 cb_count     <= 9'd0;
+		 bc           <= 16'd0;
+		 kcb          <= 16'd0;
+		 zc_min       <= 9'd0;
+		 zc           <= 9'd0;
+		 k            <= 16'd0;
+	
+		 params_calc  <= 1'b0;
+	
+// ---------------- FSM STATES ----------------
+		 state_fsm1   <= MEM_IDLE;
+		 state_fsm2   <= S_IDLE;
+		 state_fsm3   <= CB_IDLE;
+	
+// ---------------- CB/TB ITERATORS ----------------
+		 cb_num       <= 4'd0;
+		 emitt_bits   <= 16'd0;
+		 taken_bits   <= 8'd0;
+		 w0			  <= 64'b0;
+	
+// ---------------- CEIL CTRL ----------------
+		 ceil_rst     <= 1'b0;
+		 ceil_enable  <= 1'b0;
+		 ceil_num     <= 16'd0;
+		 ceil_den     <= 16'd0;
+	
+// ---------------- CRC CTRL ----------------
+		 crc_rst      <= 1'b0;          
+		 crc_in_valid <= 1'b0;
+		 crc_in_last  <= 1'b0;
+		 crc_in_chunk <= {W{1'b0}};
+		 crc_cb_len   <= 16'd0;
+	
+	  end else begin
+			
+		 if (in_valid) begin
+				tb_mem[wr_addr] <= in_chunk;
+				wr_addr	 		 <= wr_addr + 10'b1;
+			end
+		 rd_data  <= tb_mem[rd_addr];  // synchroniczny odczyt (zarejestrowany)
+		 
+		 out_valid       <= 1'b0;
+		 out_chunk       <= {W{1'b0}};
+		 out_last_chunk  <= 1'b0;
+		 out_last_cb     <= 1'b0;
+	
+		 crc_in_valid    <= 1'b0;
+		 crc_in_last     <= 1'b0;
+			
+// ------------------------------ TB SAVING FSM ---------------------------------
+			case (state_fsm1)
+				MEM_IDLE: begin
+					if(~tb_stored && in_valid) begin
+						tb_words 		 <= tb_words + 1'b1;
+						if (in_last) begin 
+							tb_stored 	 	 <= 1'b1;
+							tb_last_addr 	 <= wr_addr;
+							state_fsm1   	 <= MEM_FINISHING;
+						end else begin
+							wr_addr			 <= wr_addr + 1'b1;
+							state_fsm1		 <= MEM_COLLECTING;
+						end
+					end
+				end
+				
+				MEM_COLLECTING: begin
+					if(in_valid) begin
+						tb_words 		 <= tb_words + 1'b1;
+						if (in_last) begin
+							tb_stored 	 	 <= 1'b1;
+							tb_last_addr 	 <= wr_addr;
+							state_fsm1   	 <= MEM_FINISHING;
+						end else begin
+							wr_addr			 <= wr_addr + 1'b1;
+						end
+					end
+				end
+				MEM_FINISHING: begin
+					wr_addr 		<= 11'b0;
+					state_fsm1	<= MEM_IDLE;
+				end
+				default: begin
+					state_fsm1	<= MEM_IDLE;
+				end
+			endcase
+// ------------------------------ LDPC PARAMS FSM ---------------------------------
+			case (state_fsm2)
+				S_IDLE: begin
+					if(in_valid) begin
+						tb_len_r   <= tb_len;
+						state_fsm2 <= S_PREP_CB_COUNT;
+						ceil_rst   <= 1'b0;
+					end
+				end
+				
+				S_PREP_CB_COUNT: begin
+					if (b>kcb_max) begin
+						ceil_num 	<= b;
+						ceil_den 	<= kcb_max-14'd24;
+						ceil_enable <= 1'b1;
+						ceil_rst 	<= 1'b1;
+						state_fsm2	<= S_CALC_CB_COUNT;
+					end else begin
+						cb_count   <= 8'b1; 
+						bc			  <= b;
+						kcb		  <= b;
+						ceil_rst	  <= 1'b1;
+						state_fsm2 <= S_PREP_ZC_MIN;
+					end
+				end
+				
+				S_CALC_CB_COUNT: begin
+					ceil_enable <= 1'b1;
+					if(ceil_valid)begin
+						cb_count   	<= ceil_result;
+						bc			  	<= b + ceil_result*9'd24;
+						ceil_enable	<= 1'b0;
+						state_fsm2 	<= S_PREP_KCB;
+					end
+				end
+				
+				S_PREP_KCB: begin
+					ceil_enable	<= 1'b1;
+					ceil_num		<= bc;
+					ceil_den		<= cb_count;
+					state_fsm2	<= S_CALC_KCB;
+				end
+				
+				S_CALC_KCB: begin
+					ceil_enable <= 1'b1;
+					if(ceil_valid) begin
+						kcb 		   <= ceil_result;
+						ceil_enable	<= 1'b0;
+						state_fsm2  <= S_PREP_ZC_MIN;
+					end
+				end
+				
+				S_PREP_ZC_MIN: begin
+					ceil_enable	<= 1'b1;
+					ceil_num	   <= kcb;
+					ceil_den	   <= kb;
+					state_fsm2	<= S_CALC_ZC_MIN;
+				end
+				
+				S_CALC_ZC_MIN: begin
+					ceil_enable <= 1'b1;
+					if(ceil_valid) begin
+						zc_min 	   <= ceil_result;
+						zc				<= find_zc(ceil_result);
+						out_zc		<= find_zc(ceil_result);
+						k				<= bg ? 5'd22*find_zc(ceil_result) : 5'd10*find_zc(ceil_result) ;
+						ceil_enable <= 1'b0;
+						params_calc <= 1'b1;
+						state_fsm2  <= S_IDLE;
+					end
+				end
+				default: begin
+					state_fsm2		<= S_IDLE;
+				end
+			endcase
+// ------------------------------ CB HANDLING FSM ---------------------------------
+		case (state_fsm3)
+				CB_IDLE: begin
+					if(tb_ready) begin
+						out_filler_num 	<= k-kcb;
+						out_k					<= k;
+						out_bg				<= bg;
+						out_last_cb			<= (cb_num == cb_count-1) ?	1'b1 : 1'b0;
+						if (cb_count == 1) begin
+							rd_addr		<= 10'b1;
+							rd_rdy		<= 1'b0;
+							state_fsm3  <= CB_OUT_TB;
+						end else begin
+								crc_rst			<= 1'b1;
+								crc_cb_len		<= kcb-16'd24;
+								emitt_bits		<= kcb-16'd24;
+								rd_addr		<= (cb_num == 4'b0) ? 10'b1 : rd_addr;
+								rd_rdy		<= 1'b0;
+								state_fsm3	<= (cb_num == 4'b0) ? CB_PREP_WINDOW : CB_CRC;
+						end
+					end
+				end
+				
+				CB_PREP_WINDOW: begin
+					if (rd_rdy) begin
+						state_fsm3 		<= CB_CRC;		
+					end else begin
+						rd_rdy	<= 1'b1;
+						w0			<= rd_data;
+					end
+				
+				end
+				
+				
+				
+				CB_CRC: begin
+					out_last_cb	<= (cb_num == cb_count-1) ?	1'b1 : 1'b0;
+					if (rd_rdy) begin
+						if (emitt_bits > 16'd64) begin
+							crc_in_valid 	<= 1'b1;
+							crc_in_chunk	<= stitch64(w0, rd_data, taken_bits);
+							rd_addr			<= rd_addr + 10'b1;
+							rd_rdy			<= 1'b0;
+							emitt_bits  	<= emitt_bits - 16'd64;
+							w0					<= rd_data;
+						end else begin
+							if (emitt_bits == 16'd64) begin
+								crc_in_valid 	<= 1'b1;
+								crc_in_chunk 	<= stitch64(w0, rd_data, taken_bits);
+								crc_in_last		<= 1'b1;
+								rd_addr			<= rd_addr + 10'b1;
+								rd_rdy			<= 1'b0;
+								emitt_bits  	<= emitt_bits - 16'd64;
+								w0					<= rd_data;
+								state_fsm3		<= CB_OUT;
+							end else begin
+								crc_in_valid 	<= 1'b1;
+								crc_in_last		<= 1'b1;
+								crc_in_chunk	<= msb_keep(stitch64(w0, rd_data, taken_bits), emitt_bits);
+								if (taken_bits + emitt_bits >= 16'd64) begin
+								  rd_addr   	<= rd_addr + 10'd1;
+								  rd_rdy			<= 1'b0;
+								  w0				<= rd_data;
+								  taken_bits <= (taken_bits + emitt_bits - 16'd64);
+								end else begin
+								  taken_bits <= (taken_bits + emitt_bits);
+								end
+								emitt_bits		<= 16'b0;
+								state_fsm3		<= CB_OUT;
+							end
+						end
+					end else begin
+						rd_rdy	<= 1'b1;
+					end
+					if (crc_out_valid) begin
+						out_valid 	<= 1'b1;
+						out_chunk	<= crc_out_chunk;
+					end
+					
+				end
+				CB_OUT: begin
+					out_last_cb	<= (cb_num == cb_count-1) ?	1'b1 : 1'b0;
+					if (crc_out_valid) begin
+						if (crc_out_last) begin
+							out_valid 		<= 1'b1;
+							out_chunk		<= crc_out_chunk;
+							out_last_chunk	<= 1'b1;
+							cb_num			<= cb_num + 1;
+							crc_rst			<= 1'b0;
+							state_fsm3		<= CB_IDLE;
+							if(out_last_cb) begin
+								tb_stored	<= 1'b0;
+								params_calc <= 1'b0;
+								cb_num 		<= 9'b0;
+								rd_addr		<= 10'b0;
+								taken_bits	<= 8'b0;
+							end
+						end else begin
+							out_valid 	<= 1'b1;
+							out_chunk	<= crc_out_chunk;
+						end	
+					end
+				end
+				
+				CB_OUT_TB: begin
+					out_last_cb	<= 1'b1;
+					out_valid	<= 1'b1;
+					out_chunk	<= rd_data;
+					rd_addr 		<= rd_addr + 10'b1;
+					if (rd_addr == tb_last_addr + 10'b1) begin
+						rd_addr 			<= 11'b0;
+						out_last_chunk <= 1'b1;
+						tb_stored		<= 1'b0;
+						params_calc 	<= 1'b0;
+						rd_addr			<= 10'b0;
+						state_fsm3		<= CB_IDLE;
+					end
+				end
+				
+				default: begin
+					state_fsm3	<= CB_IDLE;
+				end
+				
+				
+			endcase
+		end
+	end
+	
+	function [63:0] stitch64;
+	  input [63:0] w0, w1;
+	  input [7:0]  offs;         
+	  reg   [127:0] pair;
+	  begin
+		 pair    = {w0, w1};
+		 stitch64 = (pair << offs)>>64;
+	  end
+	endfunction
+	
+	function [63:0] msb_keep;
+	  input [63:0] x;
+	  input [15:0] n;            // ile MSB ma zostać (0..64)
+	  reg   [63:0] mask;
+	  begin
+		mask = 64'hFFFF_FFFF_FFFF_FFFF << (16'd64 - n);
+		msb_keep = x & mask;
+	  end
+	endfunction
+	
+	function [8:0] find_zc(input integer zc_min);
+		begin
+		  if (zc_min <=   2) find_zc = 2;
+		  else if (zc_min <=   3) find_zc = 3;
+		  else if (zc_min <=   4) find_zc = 4;
+		  else if (zc_min <=   5) find_zc = 5;
+		  else if (zc_min <=   6) find_zc = 6;
+		  else if (zc_min <=   7) find_zc = 7;
+		  else if (zc_min <=   8) find_zc = 8;
+		  else if (zc_min <=   9) find_zc = 9;
+		  else if (zc_min <=  10) find_zc = 10;
+		  else if (zc_min <=  11) find_zc = 11;
+		  else if (zc_min <=  12) find_zc = 12;
+		  else if (zc_min <=  13) find_zc = 13;
+		  else if (zc_min <=  14) find_zc = 14;
+		  else if (zc_min <=  15) find_zc = 15;
+		  else if (zc_min <=  16) find_zc = 16;
+		  else if (zc_min <=  18) find_zc = 18;
+		  else if (zc_min <=  20) find_zc = 20;
+		  else if (zc_min <=  22) find_zc = 22;
+		  else if (zc_min <=  24) find_zc = 24;
+		  else if (zc_min <=  26) find_zc = 26;
+		  else if (zc_min <=  28) find_zc = 28;
+		  else if (zc_min <=  30) find_zc = 30;
+		  else if (zc_min <=  32) find_zc = 32;
+		  else if (zc_min <=  36) find_zc = 36;
+		  else if (zc_min <=  40) find_zc = 40;
+		  else if (zc_min <=  44) find_zc = 44;
+		  else if (zc_min <=  48) find_zc = 48;
+		  else if (zc_min <=  52) find_zc = 52;
+		  else if (zc_min <=  56) find_zc = 56;
+		  else if (zc_min <=  60) find_zc = 60;
+		  else if (zc_min <=  64) find_zc = 64;
+		  else if (zc_min <=  72) find_zc = 72;
+		  else if (zc_min <=  80) find_zc = 80;
+		  else if (zc_min <=  88) find_zc = 88;
+		  else if (zc_min <=  96) find_zc = 96;
+		  else if (zc_min <= 104) find_zc = 104;
+		  else if (zc_min <= 112) find_zc = 112;
+		  else if (zc_min <= 120) find_zc = 120;
+		  else if (zc_min <= 128) find_zc = 128;
+		  else if (zc_min <= 144) find_zc = 144;
+		  else if (zc_min <= 160) find_zc = 160;
+		  else if (zc_min <= 176) find_zc = 176;
+		  else if (zc_min <= 192) find_zc = 192;
+		  else if (zc_min <= 208) find_zc = 208;
+		  else if (zc_min <= 224) find_zc = 224;
+		  else if (zc_min <= 240) find_zc = 240;
+		  else if (zc_min <= 256) find_zc = 256;
+		  else if (zc_min <= 288) find_zc = 288;
+		  else if (zc_min <= 320) find_zc = 320;
+		  else if (zc_min <= 352) find_zc = 352;
+		  else if (zc_min <= 384) find_zc = 384;
+		  else                  find_zc = 0; // poza zakresem
+		end
+	endfunction
+endmodule
+	

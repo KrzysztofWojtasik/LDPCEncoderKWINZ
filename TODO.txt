@@ -1,3 +1,5 @@
 Axis stream
 Dyrektywa definicji ram (block/distributed)
 dyrektywa mnożarek / logika
+
+sadsa
